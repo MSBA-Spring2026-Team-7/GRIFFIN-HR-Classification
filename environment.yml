@@ -1,0 +1,45 @@
+# GRIFFIN -- W&M HR Classification Project
+# Recreate: conda env create -f environment.yml
+# Activate: conda activate griffin
+
+name: griffin
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.11
+
+  # --- Scraping & Parsing ---
+  - requests
+  - beautifulsoup4
+  - lxml
+
+  # --- Data & Database ---
+  - pandas
+  - sqlalchemy
+  - pymysql
+  - openpyxl
+
+  # --- Visualization ---
+  - streamlit
+  - plotly
+  - seaborn
+  - matplotlib
+
+  # --- ML Explainability ---
+  - shap
+
+  # --- Jupyter kernel support ---
+  - ipykernel
+
+  # --- H2O (install separately) ---
+  # H2O requires Java. Follow the Big Data course lab setup process.
+  # Do NOT uncomment these -- install H2O via the lab instructions instead.
+
+  # --- pip-only packages ---
+  - pip:
+    - pdfplumber
+    - langchain
+    - langchain-core
+    - langgraph

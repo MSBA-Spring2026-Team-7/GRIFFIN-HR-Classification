@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRIFFIN Project Kanban | W&amp;M HR Classification</title>
+<style>
+  :root {
+    --done: #d4edda;
+    --done-border: #28a745;
+    --progress: #fff3cd;
+    --progress-border: #ffc107;
+    --todo: #f8d7da;
+    --todo-border: #dc3545;
+    --blocked: #e2e3e5;
+    --blocked-border: #6c757d;
+    --ai: #d1ecf1;
+    --bigdata: #e8daef;
+    --shared: #fdebd0;
+    --hr: #d5f5e3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f0f2f5;
+    color: #333;
+    padding: 16px;
+  }
+  h1 { text-align: center; margin-bottom: 4px; font-size: 1.6rem; }
+  .subtitle { text-align: center; color: #666; margin-bottom: 4px; font-size: 0.9rem; }
+  .date { text-align: center; color: #999; margin-bottom: 16px; font-size: 0.8rem; }
+  .legend {
+    display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
+    margin-bottom: 16px; font-size: 0.8rem;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 3px; display: inline-block;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .column {
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 400px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .column-header {
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .col-done .column-header { background: var(--done); border-left: 4px solid var(--done-border); }
+  .col-progress .column-header { background: var(--progress); border-left: 4px solid var(--progress-border); }
+  .col-todo .column-header { background: var(--todo); border-left: 4px solid var(--todo-border); }
+  .col-blocked .column-header { background: var(--blocked); border-left: 4px solid var(--blocked-border); }
+  .card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    transition: box-shadow 0.15s;
+  }
+  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .card-title { font-weight: 600; margin-bottom: 4px; }
+  .card-desc { color: #555; font-size: 0.78rem; margin-bottom: 6px; }
+  .card-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.68rem; padding: 2px 6px; border-radius: 3px; font-weight: 500;
+  }
+  .tag-ai { background: var(--ai); color: #0c5460; }
+  .tag-bd { background: var(--bigdata); color: #4a235a; }
+  .tag-shared { background: var(--shared); color: #784212; }
+  .tag-hr { background: var(--hr); color: #1e8449; }
+  .tag-ws1 { background: #fce4ec; color: #880e4f; }
+  .tag-ws2 { background: #e3f2fd; color: #0d47a1; }
+  .tag-ws3 { background: #fff8e1; color: #f57f17; }
+  .tag-ws4 { background: #e8f5e9; color: #2e7d32; }
+  .assignable { border-left: 3px solid #007bff; }
+  .domain-infra { border-left: 4px solid #2E86C1; }
+  .domain-research { border-left: 4px solid #27AE60; }
+  .domain-design { border-left: 4px solid #E67E22; }
+  .domain-tech { border-left: 4px solid #8E44AD; }
+  .domain-shared { border-left: 4px solid #95a5a6; }
+  .start-now { background: #fffde7 !important; }
+  .start-badge { display:inline-block; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:#28a745; color:#fff; font-weight:600; margin-left:4px; }
+  .owner { font-size: 0.7rem; color: #888; margin-top: 4px; font-style: italic; }
+  .section-label {
+    font-size: 0.72rem; font-weight: 600; color: #888;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin: 10px 0 6px 0; padding-bottom: 3px;
+    border-bottom: 1px dashed #ddd;
+  }
+  .count { font-weight: 400; color: #888; font-size: 0.8rem; }
+  @media (max-width: 900px) {
+    .board { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 550px) {
+    .board { grid-template-columns: 1fr; }
+  }
+  .footer {
+    text-align: center; margin-top: 20px; font-size: 0.75rem; color: #aaa;
+  }
+</style>
+</head>
+<body>
+
+<h1>GRIFFIN Project Kanban</h1>
+<p class="subtitle">W&amp;M HR Position Classification &amp; Pay Matching Tool</p>
+<p class="date">Updated: March 31, 2026 | AI poster: April 15 | Big Data presentation: April 17</p>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:var(--ai)"></span> AI Course (TP3)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--bigdata)"></span> Big Data (5722)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--shared)"></span> Shared</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--hr)"></span> HR Handoff</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#2E86C1"></span> Infrastructure</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#27AE60"></span> Research + Content</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#E67E22"></span> Design + Delivery</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#8E44AD"></span> Technical (Steven)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#fffde7;border:1px solid #f9a825"></span> Start NOW</div>
+</div>
+
+<div class="board">
+
+  <!-- ==================== DONE ==================== -->
+  <div class="column col-done">
+    <div class="column-header">Done <span class="count">(22)</span></div>
+
+    <div class="section-label">Workstream 1: Data Collection</div>
+
+    <div class="card">
+      <div class="card-title">Scrape all 56 DHRM career groups</div>
+      <div class="card-desc">50 HTML + 6 PDF pages scraped, raw pages cached in raw_pages/</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Parse HTML career groups (50)</div>
+      <div class="card-desc">BeautifulSoup + regex. All roles, factors, SOC codes, historical titles extracted.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Parse PDF career groups (6)</div>
+      <div class="card-desc">pdfplumber parser. Embedded layout, split tables, and transitional formats all handled.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">FY26 DHRM salary structure (PDF)</div>
+      <div class="card-desc">9 pay bands parsed from official FY26 PDF. Loaded to dhrm_pay_bands table.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">W&amp;M salary structure</div>
+      <div class="card-desc">46 pay grades (S01-S23 + H01-H23) from university website.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">DHRM-to-W&amp;M crosswalk</div>
+      <div class="card-desc">9-row mapping. Band 7 -> S18 validated against Assistant Controller example.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">SQLite database load</div>
+      <div class="card-desc">7 tables loaded via sqlalchemy. Verification queries passing.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Excel export (hr_handoff/)</div>
+      <div class="card-desc">7 .xlsx files ready: career_groups, roles, soc_codes, historical_titles, pay bands, grades, crosswalk.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-hr">HR Handoff</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Data validation (56 groups, 294 roles)</div>
+      <div class="card-desc">100% career group coverage. All 4 compensable factors present for every role.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Database schema design (9 tables)</div>
+      <div class="card-desc">SQL file with 6 reference + 3 classification output tables. 4 pre-built views.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Classification prompt template v1</div>
+      <div class="card-desc">Draft prompt with blend logic, duty mapping, and explanation generation.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws2">WS2</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Project spec document (v3)</div>
+      <div class="card-desc">Full architecture, workstreams, deliverables checklist, validated example.</div>
+      <div class="card-meta">
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Proof of Concept folder</div>
+      <div class="card-desc">Early prototype demonstrating classification logic end-to-end.</div>
+      <div class="card-meta">
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="section-label">Workday Pipeline (A1-A5) + Assignment 5 (B1-B3)</div>
+
+    <div class="card">
+      <div class="card-title">A1: Environment setup (conda)</div>
+      <div class="card-desc">Conda env "griffin" created via Anaconda. Python 3.11, 16 packages. Kernel registered as "GRIFFIN (conda)". H2O deferred -- follow Big Data lab process.</div>
+      <div class="card-meta">
+        <span class="tag tag-shared">Shared</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">A2: Workday scrape (CQM orchestrated)</div>
+      <div class="card-desc">150 postings fetched via JSON API, 103 staff retained, 47 faculty excluded. Labels: comp_grade (100%), job_profile_code (95%), job_family (97%). CQM Three-Phase, 4 checkpoints, 36 criteria -- all passed.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">A3: Label stripping + censored PDs</div>
+      <div class="card-desc">Classification fields stripped from PD text. Zero label leakage (7-pattern scan, 15 spot-checks). Outputs: workday_training.csv (103 rows), workday_postings.csv, workday_exclusions.csv.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">A4: Feature engineering (Apr 6)</div>
+      <div class="card-desc">15 regex-based features from 103 censored PDs. 30 W&amp;M job families mapped to 7 DHRM occupational families. Output: workday_features.csv (100 rows x 15 features).</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">A5: H2O AutoML training (Apr 6)</div>
+      <div class="card-desc">80 models (GBM, DRF, GLM, DL, ensembles). 5-fold stratified CV. Best GBM: logloss 0.95, 91% on majority class, top-3 near-perfect. SHAP, PDP, variable importance. OpenJDK 25 installed.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">B1: LangChain multi-agent PoC (Apr 6)</div>
+      <div class="card-desc">767-line script. 3 agents (Classifier, Pay Matcher, Orchestrator), 5 custom tools, 2 external APIs, memory, streaming. CQM 21/21 criteria passed. Assignment 5 deliverable.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">B2: skill.md + template files (Apr 6)</div>
+      <div class="card-desc">Classifier skill + Pay Matcher skill. Typed parameters, step-by-step instructions. Zipped for Gradescope.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">B3: Design rationale report (Apr 6)</div>
+      <div class="card-desc">1-page report: 3 agents, 5 tools, orchestration pattern, GRIFFIN Layer 3 integration. ~700 words.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+      </div>
+    </div>
+
+    <div class="section-label">Project Planning &amp; Client</div>
+
+    <div class="card">
+      <div class="card-title">Client response received (Mar 27)</div>
+      <div class="card-desc">Chas Ritinski directed us to W&amp;M Workday job board (~149 postings with pay band labels). Confirmed Copilot/Gemini as approved AI tools. Faculty positions excluded.</div>
+      <div class="card-meta">
+        <span class="tag tag-hr">HR Handoff</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== IN PROGRESS ==================== -->
+  <div class="column col-progress">
+    <div class="column-header">In Progress <span class="count">(0)</span></div>
+
+    <p style="color:#888; font-size:0.82rem; text-align:center; padding:20px 10px;">No tasks currently in progress.<br>Next up: A4 Feature Engineering.</p>
+
+  </div>
+
+  <!-- ==================== TO DO (organized by domain) ==================== -->
+  <div class="column col-todo">
+    <div class="column-header">To Do <span class="count">(15)</span></div>
+
+    <div class="section-label" style="color:#2E86C1">Domain 1: Infrastructure Lead</div>
+
+    <div class="card domain-infra start-now">
+      <div class="card-title">#2 GitHub Projects kanban board <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Migrate this task list to GitHub Projects. Must show active use during semester.</div>
+      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
+    </div>
+    <div class="card domain-infra start-now">
+      <div class="card-title">#11 Project folder restructure <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Organize into data/, notebooks/, reports/, ppt/ per Big Data rubric.</div>
+      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
+    </div>
+    <div class="card domain-infra start-now">
+      <div class="card-title">#7 Deploy to Google Cloud SQL <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Migrate SQLite schema to Cloud SQL (MySQL). Data populates later.</div>
+      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
+    </div>
+    <div class="card domain-infra start-now">
+      <div class="card-title">#1 GitHub README <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Draft structure, add author bios + GitHub links, visuals, responsible AI section, references.</div>
+      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
+    </div>
+
+    <div class="section-label" style="color:#27AE60">Domain 2: Research + Content Lead</div>
+
+    <div class="card domain-research start-now">
+      <div class="card-title">#5 Research paper citation <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Find 1+ academic paper (&lt; 3 years old) on LLM classification, agentic AI, or HR automation.</div>
+      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
+    </div>
+    <div class="card domain-research start-now">
+      <div class="card-title">#6 Responsible AI section <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Bias risks, human-in-the-loop, data privacy (no PII in prompts), explainability.</div>
+      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
+    </div>
+    <div class="card domain-research start-now">
+      <div class="card-title">#10 Ethical reflection <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Public DHRM data, scraping ethics (rate limiting, robots.txt), classification bias, responsible LLM use.</div>
+      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
+    </div>
+
+    <div class="section-label" style="color:#E67E22">Domain 3: Design + Delivery Lead</div>
+
+    <div class="card domain-design start-now">
+      <div class="card-title">#4 Conference poster layout <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Design poster template. Problem, architecture, demo screenshots, responsible AI, research paper. April 15.</div>
+      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
+    </div>
+    <div class="card domain-design start-now">
+      <div class="card-title">#9 Big Data slide deck structure <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Outline all sections: problem, architecture, pipeline demo, findings, ethics, next steps. April 17.</div>
+      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
+    </div>
+    <div class="card domain-design">
+      <div class="card-title">Presentation rehearsal plan</div>
+      <div class="card-desc">Draft who presents what section, timing, Q&amp;A prep. All members must be actively engaged.</div>
+      <div class="card-meta"><span class="tag tag-shared">Shared</span></div>
+    </div>
+
+    <div class="section-label" style="color:#8E44AD">Domain 4: Technical Lead -- Steven</div>
+
+    <div class="card domain-tech start-now">
+      <div class="card-title">#12 Pay estimation prompt <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Compensation prompt: takes classification + salary data, produces weighted pay math for blended roles.</div>
+      <div class="card-meta"><span class="tag tag-shared">Shared</span></div>
+      <div class="owner">Steven</div>
+    </div>
+    <div class="card domain-tech">
+      <div class="card-title">#3 Streamlit web app <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Anmol has working demo. Needs integration: wire to LangChain backend + H2O model loader. Paste PD -> classification + pay + explanation.</div>
+      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
+      <div class="owner">Anmol + Steven</div>
+    </div>
+    <div class="card domain-tech">
+      <div class="card-title">#8 Visualizations</div>
+      <div class="card-desc">matplotlib/seaborn/plotly: SHAP, PDP, variable importance, family distributions.</div>
+      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
+      <div class="owner">Steven (after A5)</div>
+    </div>
+
+    <div class="section-label" style="color:#95a5a6">Shared (Everyone)</div>
+
+    <div class="card domain-shared start-now">
+      <div class="card-title">#13 Validate against 10+ positions <span class="start-badge">START NOW</span></div>
+      <div class="card-desc">Each person tests 2-3 PDs through MVP prompt + Excel files. Document accuracy.</div>
+      <div class="card-meta"><span class="tag tag-shared">Shared</span></div>
+    </div>
+    <div class="card domain-shared">
+      <div class="card-title">#14 Data dictionary</div>
+      <div class="card-desc">Every field documented. After validation.</div>
+      <div class="card-meta"><span class="tag tag-hr">HR Handoff</span></div>
+    </div>
+    <div class="card domain-shared">
+      <div class="card-title">#15 User guide / SOP</div>
+      <div class="card-desc">Step-by-step classification workflow. After validation.</div>
+      <div class="card-meta"><span class="tag tag-hr">HR Handoff</span></div>
+    </div>
+    <div class="card domain-shared">
+      <div class="card-title">#16 Validation report</div>
+      <div class="card-desc">Accuracy, edge cases, recommendations. After validation.</div>
+      <div class="card-meta"><span class="tag tag-hr">HR Handoff</span></div>
+    </div>
+
+  </div>
+
+  <!-- ==================== BLOCKED ==================== -->
+  <div class="column col-blocked">
+    <div class="column-header">Blocked / Waiting <span class="count">(1)</span></div>
+
+    <div class="section-label">Waiting on Client</div>
+
+    <div class="card">
+      <div class="card-title">Proprietary data integration</div>
+      <div class="card-desc">HR has internal position data (PDF/Excel) they cannot share. Schema is designed for it, but we need their confirmation on column structure.</div>
+      <div class="card-meta">
+        <span class="tag tag-hr">HR Handoff</span>
+      </div>
+      <div class="owner">Blocker: Depends on client feedback</div>
+    </div>
+
+    <div class="section-label">Recently Resolved</div>
+
+    <div class="card" style="opacity: 0.6;">
+      <div class="card-title" style="text-decoration: line-through;">LLM API selection for Streamlit</div>
+      <div class="card-desc">RESOLVED: LangChain confirmed as production framework (Prof. Chung, verbal Mar 30). <code>init_chat_model()</code> makes the app LLM-agnostic -- HR swaps Copilot/Gemini/Claude via config string.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag" style="background:#d4edda;color:#155724;">Resolved</span>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="footer">
+  GRIFFIN (Government Role Identification and Financial Framework Integration Network) | BUAD 5742 + BUAD 5722 | Spring 2026<br>
+  Blue-bordered cards = team members can pick up. Drag to GitHub Projects for live tracking.
+</div>
+
+</body>
+</html>

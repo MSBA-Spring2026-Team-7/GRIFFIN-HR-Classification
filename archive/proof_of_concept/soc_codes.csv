@@ -1,0 +1,13 @@
+career_group_code,career_group_name,role_code,soc_code,soc_title,mapping_level
+19030,Financial Services,,11-3030,Financial Managers,career_group
+19030,Financial Services,,13-2000,Financial Specialists,career_group
+19030,Financial Services,,13-2010,Accountants and Auditors,career_group
+19030,Financial Services,,13-2080,"Tax Examiners, Collectors, Preparers and Revenue Agents",career_group
+19030,Financial Services,,13-2099,"Financial Specialists, All Others",career_group
+19030,Financial Services,19031,13-2000,Financial Specialists,role
+19030,Financial Services,19032,13-2000,Financial Specialists,role
+19030,Financial Services,19033,13-2000,Financial Specialists,role
+19030,Financial Services,19034,11-3030,Financial Managers,role
+19030,Financial Services,19035,11-3030,Financial Managers,role
+19030,Financial Services,19036,11-3030,Financial Managers,role
+19030,Financial Services,19037,11-3030,Financial Managers,role

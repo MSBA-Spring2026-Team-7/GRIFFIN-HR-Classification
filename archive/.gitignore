@@ -1,0 +1,2 @@
+# Never commit API keys
+.env

@@ -1,0 +1,33 @@
+# Cached raw data (large, regenerable)
+data/cache/
+
+# H2O model artifacts
+models/
+
+# CQM sessions
+cqm-sessions/
+
+# API keys
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# R
+.Rhistory
+.RData

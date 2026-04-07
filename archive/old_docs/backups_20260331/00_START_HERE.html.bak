@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRIFFIN -- Team Briefing Portal</title>
+<style>
+  :root {
+    --bg: #f8f9fa; --card: #fff; --text: #212529; --muted: #6c757d;
+    --ai: #17a2b8; --bd: #8e44ad; --hr: #27ae60; --shared: #e67e22;
+    --done: #28a745; --todo: #ffc107; --blocked: #dc3545;
+    --accent: #2c3e50; --border: #dee2e6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+  .hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff; padding: 48px 24px 36px; text-align: center;
+  }
+  .hero h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 8px; }
+  .hero .tagline { font-size: 1.1rem; opacity: 0.85; max-width: 700px; margin: 0 auto 20px; }
+  .hero .deadlines {
+    display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-top: 16px;
+  }
+  .deadline-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-radius: 20px; font-weight: 600; font-size: 0.9rem;
+  }
+  .deadline-ai { background: rgba(23,162,184,0.25); border: 1px solid var(--ai); }
+  .deadline-bd { background: rgba(142,68,173,0.25); border: 1px solid var(--bd); }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  /* Navigation tabs */
+  .nav-tabs {
+    display: flex; gap: 4px; border-bottom: 2px solid var(--border);
+    margin-bottom: 24px; overflow-x: auto;
+  }
+  .nav-tab {
+    padding: 10px 20px; border: none; background: none; font-size: 0.9rem;
+    font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent;
+    white-space: nowrap; transition: all 0.2s;
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-num { display: inline-block; width: 22px; height: 22px; line-height: 22px;
+    text-align: center; border-radius: 50%; background: var(--muted); color: #fff;
+    font-size: 0.72rem; margin-right: 6px; }
+  .nav-tab.active .tab-num { background: var(--accent); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 20px 24px; margin-bottom: 16px; }
+  .card h3 { font-size: 1.1rem; margin-bottom: 10px; color: var(--accent); }
+  .card p { margin-bottom: 8px; }
+
+  /* Status grid */
+  .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .status-box { padding: 20px; border-radius: 8px; text-align: center; color: #fff; }
+  .status-box .big-num { font-size: 2.4rem; font-weight: 800; }
+  .status-box .label { font-size: 0.85rem; opacity: 0.9; }
+  .bg-done { background: var(--done); }
+  .bg-progress { background: var(--ai); }
+  .bg-todo { background: var(--todo); color: #333; }
+  .bg-blocked { background: var(--blocked); }
+
+  /* File links */
+  .file-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .file-card {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 20px; color: var(--text);
+  }
+  .file-icon { font-size: 2rem; min-width: 44px; text-align: center; }
+  .file-info .file-name { font-weight: 700; font-size: 0.95rem; }
+  .file-info .file-desc { font-size: 0.82rem; color: var(--muted); }
+  .file-info .file-path {
+    margin-top: 6px; padding: 4px 8px; background: #f1f3f5; border-radius: 4px;
+    font-size: 0.78rem; color: var(--accent); display: inline-block;
+  }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { background: #f1f3f5; font-weight: 600; }
+  tr:hover td { background: #f8f9fa; }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem;
+    font-weight: 600; color: #fff; margin-right: 4px; }
+  .tag-ai { background: var(--ai); }
+  .tag-bd { background: var(--bd); }
+  .tag-hr { background: var(--hr); }
+  .tag-shared { background: var(--shared); }
+
+  /* Checklist */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 6px 0; display: flex; align-items: flex-start; gap: 8px; }
+  .checklist li::before { content: '\2610'; font-size: 1.1rem; color: var(--muted); flex-shrink: 0; }
+  .checklist li.done::before { content: '\2611'; color: var(--done); }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .tl-item { position: relative; margin-bottom: 20px; }
+  .tl-item::before {
+    content: ''; position: absolute; left: -24px; top: 4px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--muted); border: 2px solid var(--bg);
+  }
+  .tl-item.done::before { background: var(--done); }
+  .tl-item.now::before { background: var(--ai); box-shadow: 0 0 0 4px rgba(23,162,184,0.25); }
+  .tl-item .tl-date { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+  .tl-item .tl-title { font-weight: 600; }
+  .tl-item .tl-desc { font-size: 0.85rem; color: var(--muted); }
+
+  .callout { background: #e8f4fd; border-left: 4px solid var(--ai); padding: 14px 18px;
+    border-radius: 0 6px 6px 0; margin: 16px 0; font-size: 0.9rem; }
+  .callout-warn { background: #fff3cd; border-left-color: var(--todo); }
+  .callout-red { background: #f8d7da; border-left-color: var(--blocked); }
+
+  .footer { text-align: center; padding: 32px 24px; color: var(--muted); font-size: 0.82rem; }
+
+  @media (max-width: 700px) {
+    .hero h1 { font-size: 1.6rem; }
+    .container { padding: 16px; }
+    .status-grid { grid-template-columns: 1fr 1fr; }
+    .file-grid { grid-template-columns: 1fr; }
+    .nav-tab { padding: 8px 12px; font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>GRIFFIN</h1>
+  <div class="tagline">W&M HR Position Classification & Pay Matching Tool<br>Mason School of Business MSBA -- Spring 2026</div>
+  <div class="deadlines">
+    <span class="deadline-chip deadline-ai">AI Poster -- April 15</span>
+    <span class="deadline-chip deadline-bd">Big Data Deck -- April 17</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="nav-tabs" role="tablist">
+    <button class="nav-tab active" data-tab="orient"><span class="tab-num">1</span>Orient</button>
+    <button class="nav-tab" data-tab="situation"><span class="tab-num">2</span>Situation</button>
+    <button class="nav-tab" data-tab="mission"><span class="tab-num">3</span>Mission</button>
+    <button class="nav-tab" data-tab="challenges"><span class="tab-num">4</span>Challenges</button>
+    <button class="nav-tab" data-tab="execution"><span class="tab-num">5</span>Execution</button>
+    <button class="nav-tab" data-tab="tools"><span class="tab-num">6</span>Tools & Files</button>
+  </div>
+
+  <!-- ============ TAB 1: ORIENT ============ -->
+  <div class="tab-panel active" id="orient">
+    <div class="card">
+      <h3>What is GRIFFIN?</h3>
+      <p>GRIFFIN is a tool that helps W&M's HR team classify job positions and determine pay ranges. An HR professional pastes a position description, and the tool returns:</p>
+      <ol style="margin: 10px 0 10px 20px;">
+        <li><strong>Classification</strong> -- which DHRM career group and role level the position belongs to</li>
+        <li><strong>Pay recommendation</strong> -- the corresponding W&M salary grade and range</li>
+        <li><strong>Explanation</strong> -- a narrative explaining <em>why</em> that classification was chosen</li>
+      </ol>
+      <p>The tool is <strong>AI-agnostic</strong>: HR can use it with Copilot, Gemini, Claude, or any LLM they already have. We provide the data + prompts + a Streamlit web app.</p>
+    </div>
+
+    <div class="card">
+      <h3>Who is this for?</h3>
+      <table>
+        <tr><th>Audience</th><th>What they get</th></tr>
+        <tr><td><strong>W&M HR</strong> (the client)</td><td>Excel files, prompt templates, web app, user guide -- no coding required</td></tr>
+        <tr><td><strong>Prof. Chung</strong> (AI course)</td><td>GitHub repo, poster, agentic AI demo, research paper</td></tr>
+        <tr><td><strong>Prof. Castellanos</strong> (Big Data)</td><td>Jupyter notebook pipeline, Cloud SQL, visualizations, slide deck</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>MVP vs. Full Scope</h3>
+      <p><strong>What we promised the client (MVP):</strong> A tool like a Gemini Gem or Claude Project where HR pastes a stale PD and gets: (1) classification recommendation (up to 2 matches), (2) compensation grade (e.g., S15), (3) reasoning. This works <em>today</em> with our reference data + prompt template.</p>
+      <p style="margin-top:8px"><strong>What we're building for courses (full scope):</strong> A hybrid ML + LLM three-stage architecture with H2O AutoML, confidence scoring, SHAP explanations, and a LangChain multi-agent proof-of-concept (PoC) for AI Assignment 5. Each layer is additive -- if timeline forces cuts, we cut from the bottom up, never from the MVP.</p>
+    </div>
+
+    <div class="card">
+      <h3>Architecture</h3>
+      <table>
+        <tr><th>Layer</th><th>What</th><th>Status</th></tr>
+        <tr><td><strong>1. Data Foundation</strong></td><td>56 DHRM career groups scraped, parsed, validated. 7 reference tables in SQLite + Excel.</td><td style="color:var(--done);font-weight:700">DONE</td></tr>
+        <tr><td><strong>2. Workday Training Data</strong></td><td>~149 W&M Workday postings scraped via JSON API. Labels stripped for ML training. Client directed us here Mar 27.</td><td style="color:var(--todo);font-weight:700">NEXT</td></tr>
+        <tr><td><strong>3. ML Model (H2O)</strong></td><td>Feature engineering on censored PDs. H2O AutoML on tabular features. Predict occupational family (7 classes).</td><td style="color:var(--todo);font-weight:700">TO DO</td></tr>
+        <tr><td><strong>4. LangChain PoC</strong></td><td>Multi-agent PoC (Assignment 5). Validates three-stage architecture before production Streamlit app.</td><td style="color:var(--todo);font-weight:700">TO DO</td></tr>
+        <tr><td><strong>5. Streamlit App</strong></td><td>Wraps LangChain agents directly. LLM-agnostic via <code>init_chat_model()</code> (Copilot/Gemini). Paste PD, get result.</td><td style="color:var(--todo);font-weight:700">TO DO</td></tr>
+      </table>
+    </div>
+
+    <div class="callout">
+      <strong>Key principle:</strong> If the deliverable requires technical skills to operate, we have failed. Everything HR touches must work without code, scripts, databases, or SQL.
+    </div>
+  </div>
+
+  <!-- ============ TAB 2: SITUATION ============ -->
+  <div class="tab-panel" id="situation">
+    <div class="status-grid">
+      <div class="status-box bg-done"><div class="big-num">14</div><div class="label">Tasks Done</div></div>
+      <div class="status-box bg-progress"><div class="big-num">3</div><div class="label">In Progress</div></div>
+      <div class="status-box bg-todo"><div class="big-num">23</div><div class="label">To Do</div></div>
+      <div class="status-box bg-blocked"><div class="big-num">2</div><div class="label">Blocked</div></div>
+    </div>
+
+    <div class="card">
+      <h3>What's Done (Workstream 1: Data Collection)</h3>
+      <p>The entire data foundation is locked in. This is the hardest part of the project and it's behind us.</p>
+      <table>
+        <tr><th>Deliverable</th><th>Numbers</th></tr>
+        <tr><td>Career groups scraped & parsed</td><td>56 (50 HTML + 6 PDF, 3 format variants)</td></tr>
+        <tr><td>Roles with all compensable factors</td><td>294</td></tr>
+        <tr><td>SOC code mappings</td><td>666</td></tr>
+        <tr><td>Historical title mappings</td><td>1,469</td></tr>
+        <tr><td>DHRM pay bands (FY26)</td><td>9</td></tr>
+        <tr><td>W&M pay grades</td><td>46 (S01-S23 + H01-H23)</td></tr>
+        <tr><td>DHRM-to-W&M crosswalk</td><td>9 rows (Band 7 -> S18 validated)</td></tr>
+        <tr><td>SQLite database</td><td>7 tables loaded, verification queries passing</td></tr>
+        <tr><td>Excel export for HR</td><td>7 .xlsx files in hr_handoff/</td></tr>
+        <tr><td>Classification prompt v1</td><td>Drafted with blend logic and explanation</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Timeline So Far</h3>
+      <div class="timeline">
+        <div class="tl-item done">
+          <div class="tl-date">Feb 24 - Mar 7</div>
+          <div class="tl-title">Planning & Architecture</div>
+          <div class="tl-desc">Project spec v1-v3, database schema design, proof of concept</div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-date">Mar 10 - Mar 18</div>
+          <div class="tl-title">Scraping & HTML Parsing</div>
+          <div class="tl-desc">56 DHRM pages fetched, 50 HTML groups parsed with BeautifulSoup + regex</div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-date">Mar 16 - Mar 24</div>
+          <div class="tl-title">PDF Parsing (hardest part)</div>
+          <div class="tl-desc">6 PDF groups with 3 format variants. CQM diagnostic process identified root causes.</div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-date">Mar 22 - Mar 26</div>
+          <div class="tl-title">Salary, Crosswalk, DB, Excel</div>
+          <div class="tl-desc">FY26 pay bands, W&M grades, crosswalk, SQLite load, 7 Excel files exported</div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-date">Mar 27</div>
+          <div class="tl-title">Client Response Received</div>
+          <div class="tl-desc">Chas Ritinski (W&M HR) directed us to Workday job board (~149 postings with pay band labels). Copilot/Gemini approved.</div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-date">Mar 30</div>
+          <div class="tl-title">Architecture Finalized, Assignment 5 Integrated</div>
+          <div class="tl-desc">Three-stage ML+LLM design confirmed. Assignment 5 (LangChain multi-agent) integrated as PoC milestone. MVP vs. full scope defined.</div>
+        </div>
+        <div class="tl-item now">
+          <div class="tl-date">Mar 30 - Apr 2</div>
+          <div class="tl-title">Critical Path: Workday Scrape + Environment Setup</div>
+          <div class="tl-desc">Venv + Java JDK, scrape ~149 Workday postings, strip labels, begin feature engineering.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TAB 3: MISSION ============ -->
+  <div class="tab-panel" id="mission">
+    <div class="card">
+      <h3><span class="tag tag-ai">AI</span> AI Course Deliverables -- April 15 Poster</h3>
+      <p>BUAD 5742 (Dr. Chung) -- Agentic AI client engagement</p>
+      <table>
+        <tr><th>Deliverable</th><th>Weight</th><th>Status</th></tr>
+        <tr><td>GitHub repo + README</td><td>7%</td><td>To Do</td></tr>
+        <tr><td>GitHub Projects kanban board</td><td>7%</td><td>To Do</td></tr>
+        <tr><td>Streamlit web app (agentic AI)</td><td>7% + 7%</td><td>To Do</td></tr>
+        <tr><td>Conference poster</td><td>7% + 6%</td><td>To Do</td></tr>
+        <tr><td>Research paper citation</td><td>7%</td><td>To Do</td></tr>
+        <tr><td>Responsible AI section</td><td>Part of README + poster</td><td>To Do</td></tr>
+      </table>
+      <p style="margin-top:12px"><strong>Assignment 5 (integrated into GRIFFIN):</strong></p>
+      <table>
+        <tr><th>Deliverable</th><th>Status</th></tr>
+        <tr><td>LangChain multi-agent PoC (8 components)</td><td>To Do</td></tr>
+        <tr><td>skill.md + template files</td><td>To Do</td></tr>
+        <tr><td>Design rationale report (1 page)</td><td>To Do</td></tr>
+      </table>
+      <div class="callout">
+        <strong>Awards given:</strong> Agentic Design Excellence, Innovation, Communication Excellence. The Streamlit demo and agentic framing are the differentiators.
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag tag-bd">BD</span> Big Data Deliverables -- April 17 Presentation</h3>
+      <p>BUAD 5722 (Prof. Castellanos) -- End-to-end big data pipeline</p>
+      <table>
+        <tr><th>Deliverable</th><th>Focus</th><th>Status</th></tr>
+        <tr><td>Google Cloud SQL deployment</td><td>Technical Depth</td><td>To Do</td></tr>
+        <tr><td>Notebook visualizations (4+)</td><td>Visualization</td><td>To Do</td></tr>
+        <tr><td>Slide deck</td><td>Presentation</td><td>To Do</td></tr>
+        <tr><td>Ethical reflection</td><td>Ethics criterion</td><td>To Do</td></tr>
+        <tr><td>Project folder structure</td><td>Organization</td><td>To Do</td></tr>
+      </table>
+      <div class="callout">
+        <strong>Key emphasis:</strong> The Big Data course cares about the pipeline and tools (scraping, parsing, Cloud SQL, pandas), not the AI. Focus on "we processed real-world messy data at scale."
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag tag-hr">HR</span> Client Handoff Package</h3>
+      <table>
+        <tr><th>Deliverable</th><th>Status</th></tr>
+        <tr><td>7 Excel files (reference data)</td><td style="color:var(--done);font-weight:600">DONE</td></tr>
+        <tr><td>Classification prompt template</td><td>v1 done, v2 in progress</td></tr>
+        <tr><td>Pay estimation prompt template</td><td>To Do</td></tr>
+        <tr><td>Data dictionary</td><td>To Do</td></tr>
+        <tr><td>User guide / SOP</td><td>To Do</td></tr>
+        <tr><td>Validation report</td><td>To Do</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ TAB 4: CHALLENGES ============ -->
+  <div class="tab-panel" id="challenges">
+    <div class="card">
+      <h3>Blocked Items</h3>
+      <table>
+        <tr><th>Issue</th><th>Blocker</th><th>Workaround</th></tr>
+        <tr>
+          <td><strong>Proprietary data integration</strong></td>
+          <td>Depends on client providing W&M-specific internal data</td>
+          <td>Schema is designed for it (data_source column). Will slot in when available.</td>
+        </tr>
+        <tr>
+          <td><strong>LLM API selection for Streamlit</strong></td>
+          <td>Team decision needed</td>
+          <td>Client uses Copilot/Gemini. LangChain PoC can use any model; production Streamlit must be LLM-agnostic.</td>
+        </tr>
+      </table>
+      <div class="callout" style="margin-top:12px">
+        <strong>Resolved (Mar 27):</strong> Client feedback -- Chas Ritinski responded, directed us to Workday job board. No longer blocked.
+      </div>
+    </div>
+
+    <div class="callout-red callout">
+      <strong>Biggest risk:</strong> The two deadlines are 2 days apart (April 15 + April 17). There is no buffer week between them. Work must be parallelized across the team -- one person cannot serial-path everything.
+    </div>
+
+    <div class="card">
+      <h3>Known Technical Risks</h3>
+      <ul class="checklist">
+        <li>Streamlit demo depends on LLM API key -- must be configured in Streamlit Cloud secrets, NOT committed to GitHub</li>
+        <li>Cloud SQL deployment needs GCP credits -- check if course provides them or use free tier</li>
+        <li>Poster presentation is LIVE demo -- have a backup plan (screenshots, recorded video) for WiFi failures</li>
+        <li>Research paper must be &lt; 3 years old and from a reputable source -- start searching early, ArXiv has the most recent work</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============ TAB 5: EXECUTION ============ -->
+  <div class="tab-panel" id="execution">
+    <div class="card">
+      <h3>How to Claim a Task</h3>
+      <ol style="margin-left: 20px;">
+        <li>Open the <strong>Task Tracker</strong> (Excel or Kanban -- links in Tools tab)</li>
+        <li>Find an unassigned task that matches your skills</li>
+        <li>Put your name in the Owner column</li>
+        <li>Tell the team (Slack/text) which task(s) you're taking</li>
+        <li>Move the card to "In Progress" on the kanban board</li>
+        <li>When done, move it to "Done" and check off acceptance criteria</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Suggested Team Split (4 members)</h3>
+      <table>
+        <tr><th>Role</th><th>Tasks</th><th>Focus</th></tr>
+        <tr><td><strong>Member A</strong></td><td>README, Kanban board, Responsible AI</td><td>GitHub + documentation</td></tr>
+        <tr><td><strong>Member B</strong></td><td>Streamlit app, Pay prompt</td><td>Application + prompts</td></tr>
+        <tr><td><strong>Member C</strong></td><td>Cloud SQL, Visualizations, Folder structure</td><td>Big Data technical</td></tr>
+        <tr><td><strong>Member D</strong></td><td>Poster, Research paper, Slide deck</td><td>Presentations</td></tr>
+        <tr><td><strong>Everyone</strong></td><td>Validate 10+ positions (2-3 each)</td><td>Testing the tool works</td></tr>
+      </table>
+      <div class="callout">
+        <strong>This is a suggestion, not an order.</strong> Claim tasks based on your actual strengths and availability. The important thing is that every task has an owner by March 31.
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Sprint Schedule</h3>
+      <table>
+        <tr><th>Week</th><th>Dates</th><th>Theme</th><th>Key Milestones</th></tr>
+        <tr><td><strong>Week 1</strong></td><td>Mar 30 - Apr 2</td><td>Data + Setup</td><td>Venv + Java JDK, Workday scrape, label stripping, GitHub repo. (ML2 + Data Viz are priority)</td></tr>
+        <tr><td><strong>Week 2</strong></td><td>Apr 3 - 8</td><td>ML + Crunch</td><td>Feature engineering, H2O AutoML training, Prompt v2. (ML2 Apr 8, Data Viz Apr 9)</td></tr>
+        <tr><td><strong>Week 3a</strong></td><td>Apr 9 - 11</td><td>Build</td><td>Assignment 5: LangChain multi-agent system (same code powers Streamlit app), skill.md templates, design report</td></tr>
+        <tr><td><strong>Week 3b</strong></td><td>Apr 11 - 14</td><td>Polish</td><td>Streamlit app (wraps LangChain agents), validate 10+ positions, poster, Cloud SQL</td></tr>
+        <tr><td><strong>Week 4</strong></td><td>Apr 15 - 17</td><td>Present</td><td>AI poster (Apr 15), Big Data deck (Apr 17), dry runs before each</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Rules of Engagement</h3>
+      <ul class="checklist">
+        <li>AI tools allowed with disclosure (Category D for AI course, Category B for Big Data)</li>
+        <li>Do NOT commit API keys, passwords, or secrets to GitHub -- use environment variables</li>
+        <li>Do NOT name the client (W&M HR) publicly without permission</li>
+        <li>All data comes from public DHRM website -- no PII, no private HR records</li>
+        <li>Use course-approved tools only: BeautifulSoup, regex, pandas, pdfplumber, sqlalchemy, Streamlit</li>
+        <li>Rate limit any scraping (1-2 second delays) -- we already cached everything in raw_pages/</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============ TAB 6: TOOLS & FILES ============ -->
+  <div class="tab-panel" id="tools">
+    <div class="callout">
+      <strong>Google Drive note:</strong> HTML files (Kanban, Gantt, this page) must be <strong>downloaded and opened locally</strong> in your browser for interactive features to work. On Drive: right-click > Download, then double-click the file. The Excel tracker opens directly in Google Sheets from Drive.
+    </div>
+
+    <div class="card">
+      <h3>Team Working Documents</h3>
+      <p>Navigate to these files in the shared Drive folder. Paths are relative to the project root.</p>
+    </div>
+
+    <div class="file-grid">
+      <div class="file-card">
+        <div class="file-icon">&#128202;</div>
+        <div class="file-info">
+          <div class="file-name">Task Tracker (Excel)</div>
+          <div class="file-desc">Claim tasks by adding your name to the Owner column. Opens in Google Sheets on Drive.</div>
+          <div class="file-path"><code>docs / griffin-task-tracker.xlsx</code></div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="file-icon">&#128203;</div>
+        <div class="file-info">
+          <div class="file-name">Kanban Board</div>
+          <div class="file-desc">Visual task board with Done / In Progress / To Do columns. Download and open in browser.</div>
+          <div class="file-path"><code>docs / griffin-kanban.html</code></div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="file-icon">&#128197;</div>
+        <div class="file-info">
+          <div class="file-name">Gantt Chart (Interactive)</div>
+          <div class="file-desc">Full timeline. Click any task bar for steps, criteria, and tips. Download and open in browser.</div>
+          <div class="file-path"><code>docs / griffin-schedule.html</code></div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="file-icon">&#128221;</div>
+        <div class="file-info">
+          <div class="file-name">Task List (Markdown)</div>
+          <div class="file-desc">Full descriptions with acceptance criteria, dependencies, and rubric connections.</div>
+          <div class="file-path"><code>docs / TASKS.md</code></div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="file-icon">&#128209;</div>
+        <div class="file-info">
+          <div class="file-name">Architecture Briefing</div>
+          <div class="file-desc">Full briefing for professors: SVG diagrams, MVP vs. full scope, course mapping, questions, risk register.</div>
+          <div class="file-path"><code>docs / griffin-briefing.html</code></div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="file-icon">&#128214;</div>
+        <div class="file-info">
+          <div class="file-name">Project Spec (v3)</div>
+          <div class="file-desc">The master document. Architecture, schema, validated examples, and full deliverables list.</div>
+          <div class="file-path"><code>Course References / wm-hr-classification-project-prompt-v3.md</code></div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="file-icon">&#9881;</div>
+        <div class="file-info">
+          <div class="file-name">GitHub Issues Setup Script</div>
+          <div class="file-desc">Run once in the repo to auto-create all tasks as GitHub Issues. Needs <code>gh</code> CLI.</div>
+          <div class="file-path"><code>docs / github-issues-setup.sh</code></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <h3>Folder Map</h3>
+      <table>
+        <tr><th>Folder</th><th>What's Inside</th><th>Who Needs It</th></tr>
+        <tr><td><code>hr_handoff/</code></td><td>7 Excel files ready for the client</td><td>Everyone (reference data)</td></tr>
+        <tr><td><code>raw_pages/</code></td><td>Cached DHRM HTML + PDF files</td><td>Only if re-parsing needed (unlikely)</td></tr>
+        <tr><td><code>raw_workday/</code></td><td>Cached Workday JSON responses (~149 postings)</td><td>ML training data source (upcoming)</td></tr>
+        <tr><td><code>output_csv/</code></td><td>CSV exports of parsed DataFrames</td><td>Reference -- same data as SQLite/Excel</td></tr>
+        <tr><td><code>Course References/</code></td><td>Rubrics, project spec, course materials</td><td>Everyone (check rubrics before submitting)</td></tr>
+        <tr><td><code>docs/</code></td><td>Kanban, Gantt, task tracker, setup script</td><td>Everyone (project management)</td></tr>
+        <tr><td><code>Proof of Concept/</code></td><td>Early prototype files</td><td>Reference only</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Key Files in Project Root</h3>
+      <table>
+        <tr><th>File</th><th>What It Is</th><th>Open With</th></tr>
+        <tr><td><code>griffin_dhrm_pipeline.ipynb</code></td><td>Main Jupyter notebook -- the Big Data deliverable</td><td>Jupyter / VS Code / Colab</td></tr>
+        <tr><td><code>classification_prompt_template_v1.md</code></td><td>Classification prompt -- copy into any LLM to test</td><td>Any text editor</td></tr>
+        <tr><td><code>wm_hr_classification_schema.sql</code></td><td>Full MySQL schema (9 tables)</td><td>MySQL Workbench / Cloud SQL</td></tr>
+        <tr><td><code>dhrm_database_schema.html</code></td><td>Visual schema diagram</td><td>Download, open in browser</td></tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  GRIFFIN | BUAD 5742 + BUAD 5722 | Mason School of Business | Spring 2026<br>
+  Last updated: <span id="update-date"></span>
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+  // Keyboard accessibility
+  tab.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tab.click(); }
+  });
+});
+
+// Update date
+document.getElementById('update-date').textContent = new Date().toLocaleDateString('en-US', {
+  year: 'numeric', month: 'long', day: 'numeric'
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,110 @@
+# GRIFFIN -- W&M HR Position Classification & Pay Matching Tool
+
+> Mason School of Business MSBA | Spring 2026
+> BUAD 5742 (AI) + BUAD 5722 (Big Data)
+> Updated: March 30, 2026
+
+---
+
+## New to the team? Start here:
+
+**Open [`00_START_HERE.html`](00_START_HERE.html) in your browser.** It's an interactive briefing portal that walks you through the project in 6 tabs: Orient, Situation, Mission, Challenges, Execution, and Tools.
+
+For the full architecture briefing (with diagrams and questions for professors), see [`docs/griffin-briefing.html`](docs/griffin-briefing.html).
+
+---
+
+## MVP: What We Promised the Client
+
+A tool similar to a **Gemini Gem or Claude Project** where HR can:
+
+1. Paste a stale position description
+2. Get a classification recommendation (up to 2 career group/role matches)
+3. Get a compensation range recommendation (W&M salary grade, e.g., S15)
+4. Read the reasoning why
+
+This works **today** with our reference data + prompt template in any LLM. No ML model required.
+
+**Everything below the MVP is academic scope added for course credit.** If timeline forces cuts, we cut from the bottom up, never from the MVP.
+
+---
+
+## Quick Status
+
+| Metric | Count |
+|--------|-------|
+| Career groups scraped & parsed | 56 / 56 (100%) |
+| Roles with compensable factors | 294 |
+| SOC code mappings | 666 |
+| Historical title mappings | 1,469 |
+| DHRM pay bands (FY26) | 9 |
+| W&M pay grades | 46 |
+| SQLite tables loaded | 7 |
+| Excel files for HR | 7 |
+
+**Workstream 1 (Data Collection) is COMPLETE.** The reference data foundation is locked in.
+
+**Client responded (Mar 27):** Chas Ritinski directed us to W&M's Workday job board (~149 postings with pay band labels) as our training/test data. Approved AI tools: Copilot and Gemini.
+
+---
+
+## What's Next: Critical Path
+
+1. **Environment setup** -- project venv + Java JDK (required for H2O)
+2. **Workday scrape** -- ~149 postings via JSON API, cache locally, strip labels for ML training
+3. **Feature engineering** -- extract structured signals from censored PDs
+4. **H2O AutoML** -- train on tabular features, predict occupational family
+5. **Assignment 5 (LangChain PoC)** -- multi-agent proof-of-concept validating the three-stage architecture
+6. **Streamlit app** -- wraps LangChain agents directly; LLM-agnostic via `init_chat_model()`
+
+See [`docs/TASKS.md`](docs/TASKS.md) for full task list with dependencies.
+
+---
+
+## Project Structure
+
+```
+HR_Classification_Project/
+|
+|-- 00_START_HERE.html              <-- Team briefing portal (open this first)
+|-- README.md                       <-- You are here
+|-- griffin_dhrm_pipeline.ipynb     <-- Main notebook (Big Data deliverable)
+|-- classification_prompt_template_v1.md
+|-- wm_hr_classification_schema.sql
+|-- dhrm_database_schema.html       <-- Visual schema diagram
+|
+|-- hr_handoff/                     <-- 7 Excel files for the client
+|-- raw_pages/                      <-- Cached DHRM HTML + PDF (no re-scraping needed)
+|-- raw_workday/                    <-- (upcoming) Cached Workday JSON responses
+|-- output_csv/                     <-- CSV exports of parsed DataFrames
+|-- Course References/              <-- Rubrics, project spec, course materials
+|-- docs/                           <-- Kanban, Gantt chart, task tracker, briefing
+|-- Proof of Concept/               <-- Early prototype files
+```
+
+## Deadlines
+
+- **TBD** -- Assignment 5 (LangChain multi-agent PoC) -- Gradescope
+- **April 15** -- AI Course poster presentation
+- **April 17** -- Big Data course presentation
+
+## Working Documents
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| Architecture Briefing | [`docs/griffin-briefing.html`](docs/griffin-briefing.html) | Full briefing with diagrams, course mapping, questions for professors |
+| Kanban Board | [`docs/griffin-kanban.html`](docs/griffin-kanban.html) | Visual task board |
+| Gantt Chart | [`docs/griffin-schedule.html`](docs/griffin-schedule.html) | Interactive timeline with task details |
+| Task Tracker | [`docs/griffin-task-tracker.xlsx`](docs/griffin-task-tracker.xlsx) | Excel -- claim tasks here |
+| Task List | [`docs/TASKS.md`](docs/TASKS.md) | Full descriptions + acceptance criteria |
+| Project Spec | [`Course References/wm-hr-classification-project-prompt-v3.md`](Course%20References/wm-hr-classification-project-prompt-v3.md) | Architecture, schema, validated examples |
+
+## How to Test Classification (MVP)
+
+1. Open a fresh LLM session (Claude, Copilot, Gemini -- any will work)
+2. Paste the prompt from `classification_prompt_template_v1.md`
+3. Attach the reference Excel files from `hr_handoff/`
+4. Paste a W&M position description
+5. The LLM should return: career group, role, pay band, and explanation
+
+**Validated example:** Assistant Controller -> Financial Services Manager III (19036) -> Band 7 -> W&M S18

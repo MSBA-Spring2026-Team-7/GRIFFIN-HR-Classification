@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRIFFIN Project Kanban | W&amp;M HR Classification</title>
+<style>
+  :root {
+    --done: #d4edda;
+    --done-border: #28a745;
+    --progress: #fff3cd;
+    --progress-border: #ffc107;
+    --todo: #f8d7da;
+    --todo-border: #dc3545;
+    --blocked: #e2e3e5;
+    --blocked-border: #6c757d;
+    --ai: #d1ecf1;
+    --bigdata: #e8daef;
+    --shared: #fdebd0;
+    --hr: #d5f5e3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f0f2f5;
+    color: #333;
+    padding: 16px;
+  }
+  h1 { text-align: center; margin-bottom: 4px; font-size: 1.6rem; }
+  .subtitle { text-align: center; color: #666; margin-bottom: 4px; font-size: 0.9rem; }
+  .date { text-align: center; color: #999; margin-bottom: 16px; font-size: 0.8rem; }
+  .legend {
+    display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
+    margin-bottom: 16px; font-size: 0.8rem;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 3px; display: inline-block;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .column {
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 400px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .column-header {
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .col-done .column-header { background: var(--done); border-left: 4px solid var(--done-border); }
+  .col-progress .column-header { background: var(--progress); border-left: 4px solid var(--progress-border); }
+  .col-todo .column-header { background: var(--todo); border-left: 4px solid var(--todo-border); }
+  .col-blocked .column-header { background: var(--blocked); border-left: 4px solid var(--blocked-border); }
+  .card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    transition: box-shadow 0.15s;
+  }
+  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .card-title { font-weight: 600; margin-bottom: 4px; }
+  .card-desc { color: #555; font-size: 0.78rem; margin-bottom: 6px; }
+  .card-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.68rem; padding: 2px 6px; border-radius: 3px; font-weight: 500;
+  }
+  .tag-ai { background: var(--ai); color: #0c5460; }
+  .tag-bd { background: var(--bigdata); color: #4a235a; }
+  .tag-shared { background: var(--shared); color: #784212; }
+  .tag-hr { background: var(--hr); color: #1e8449; }
+  .tag-ws1 { background: #fce4ec; color: #880e4f; }
+  .tag-ws2 { background: #e3f2fd; color: #0d47a1; }
+  .tag-ws3 { background: #fff8e1; color: #f57f17; }
+  .tag-ws4 { background: #e8f5e9; color: #2e7d32; }
+  .assignable { border-left: 3px solid #007bff; }
+  .owner { font-size: 0.7rem; color: #888; margin-top: 4px; font-style: italic; }
+  .section-label {
+    font-size: 0.72rem; font-weight: 600; color: #888;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin: 10px 0 6px 0; padding-bottom: 3px;
+    border-bottom: 1px dashed #ddd;
+  }
+  .count { font-weight: 400; color: #888; font-size: 0.8rem; }
+  @media (max-width: 900px) {
+    .board { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 550px) {
+    .board { grid-template-columns: 1fr; }
+  }
+  .footer {
+    text-align: center; margin-top: 20px; font-size: 0.75rem; color: #aaa;
+  }
+</style>
+</head>
+<body>
+
+<h1>GRIFFIN Project Kanban</h1>
+<p class="subtitle">W&amp;M HR Position Classification &amp; Pay Matching Tool</p>
+<p class="date">Updated: March 30, 2026 | AI poster: April 15 | Big Data presentation: April 17</p>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:var(--ai)"></span> AI Course (TP3)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--bigdata)"></span> Big Data (5722)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--shared)"></span> Shared</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--hr)"></span> HR Handoff</div>
+  <div class="legend-item"><span class="legend-dot" style="border:2px solid #007bff; background:#fff"></span> Team can pick up</div>
+</div>
+
+<div class="board">
+
+  <!-- ==================== DONE ==================== -->
+  <div class="column col-done">
+    <div class="column-header">Done <span class="count">(14)</span></div>
+
+    <div class="section-label">Workstream 1: Data Collection</div>
+
+    <div class="card">
+      <div class="card-title">Scrape all 56 DHRM career groups</div>
+      <div class="card-desc">50 HTML + 6 PDF pages scraped, raw pages cached in raw_pages/</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Parse HTML career groups (50)</div>
+      <div class="card-desc">BeautifulSoup + regex. All roles, factors, SOC codes, historical titles extracted.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Parse PDF career groups (6)</div>
+      <div class="card-desc">pdfplumber parser. Embedded layout, split tables, and transitional formats all handled.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">FY26 DHRM salary structure (PDF)</div>
+      <div class="card-desc">9 pay bands parsed from official FY26 PDF. Loaded to dhrm_pay_bands table.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">W&amp;M salary structure</div>
+      <div class="card-desc">46 pay grades (S01-S23 + H01-H23) from university website.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">DHRM-to-W&amp;M crosswalk</div>
+      <div class="card-desc">9-row mapping. Band 7 -> S18 validated against Assistant Controller example.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">SQLite database load</div>
+      <div class="card-desc">7 tables loaded via sqlalchemy. Verification queries passing.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Excel export (hr_handoff/)</div>
+      <div class="card-desc">7 .xlsx files ready: career_groups, roles, soc_codes, historical_titles, pay bands, grades, crosswalk.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-hr">HR Handoff</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Data validation (56 groups, 294 roles)</div>
+      <div class="card-desc">100% career group coverage. All 4 compensable factors present for every role.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Database schema design (9 tables)</div>
+      <div class="card-desc">SQL file with 6 reference + 3 classification output tables. 4 pre-built views.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Classification prompt template v1</div>
+      <div class="card-desc">Draft prompt with blend logic, duty mapping, and explanation generation.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws2">WS2</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Project spec document (v3)</div>
+      <div class="card-desc">Full architecture, workstreams, deliverables checklist, validated example.</div>
+      <div class="card-meta">
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Proof of Concept folder</div>
+      <div class="card-desc">Early prototype demonstrating classification logic end-to-end.</div>
+      <div class="card-meta">
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="section-label">Project Planning &amp; Client</div>
+
+    <div class="card">
+      <div class="card-title">Client response received (Mar 27)</div>
+      <div class="card-desc">Chas Ritinski directed us to W&amp;M Workday job board (~149 postings with pay band labels). Confirmed Copilot/Gemini as approved AI tools. Faculty positions excluded.</div>
+      <div class="card-meta">
+        <span class="tag tag-hr">HR Handoff</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== IN PROGRESS ==================== -->
+  <div class="column col-progress">
+    <div class="column-header">In Progress <span class="count">(3)</span></div>
+
+    <div class="section-label">Notebook Polish</div>
+
+    <div class="card">
+      <div class="card-title">URL refactoring in notebook</div>
+      <div class="card-desc">Change HTML_SOURCES from full URLs to base URL + dynamic dictionary with f-strings. Reduces duplication.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ws1">WS1</span>
+      </div>
+      <div class="owner">Assigned: Salva (Claude Code)</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Notebook gap analysis vs. rubrics</div>
+      <div class="card-desc">Review notebook against Big Data rubric (technical depth, visualization, ethics) and AI course requirements.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ai">AI Course</span>
+      </div>
+      <div class="owner">Assigned: Salva (Claude Code)</div>
+    </div>
+
+    <div class="section-label">Workstream 2: Prompts</div>
+
+    <div class="card">
+      <div class="card-title">Refine classification prompt</div>
+      <div class="card-desc">Iterate v1 prompt against Assistant Controller example. Test blend threshold logic. Ensure LLM-agnostic.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws2">WS2</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+      <div class="owner">Assigned: Salva</div>
+    </div>
+
+  </div>
+
+  <!-- ==================== TO DO ==================== -->
+  <div class="column col-todo">
+    <div class="column-header">To Do <span class="count">(23)</span></div>
+
+    <div class="section-label">Critical Path (Do First)</div>
+
+    <div class="card" style="border-left: 3px solid #dc3545;">
+      <div class="card-title">Environment setup: venv + Java JDK</div>
+      <div class="card-desc">Create project venv (.venv/), install all deps (h2o, streamlit, plotly, etc.). Java JDK 11+ required for H2O. Confirm JDK before attempting import.</div>
+      <div class="card-meta">
+        <span class="tag tag-shared">Shared</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="card" style="border-left: 3px solid #dc3545;">
+      <div class="card-title">Workday scrape (CQM orchestrated)</div>
+      <div class="card-desc">Scrape ~149 W&amp;M Workday postings via JSON API. Cache raw JSON to raw_workday/. Filter faculty. Rate limit 1-2s. Extract labels (comp grade, job profile, job family) as ground truth.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="card" style="border-left: 3px solid #dc3545;">
+      <div class="card-title">Label stripping + censored PDs</div>
+      <div class="card-desc">Strip classification fields (comp grade, job profile, job family, salary) from PD text. Keep duties, qualifications, department. Spot-check 10+ censored PDs for leakage.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws1">WS1</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card" style="border-left: 3px solid #dc3545;">
+      <div class="card-title">Feature engineering on censored PDs</div>
+      <div class="card-desc">Extract structured signals: budget mentions, supervision level, domain keywords, education requirements, decision scope. Build tabular DataFrame for H2O.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ws2">WS2</span>
+      </div>
+    </div>
+
+    <div class="card" style="border-left: 3px solid #dc3545;">
+      <div class="card-title">H2O AutoML training</div>
+      <div class="card-desc">Train on tabular features. Predict occupational family (7 classes). Leaderboard, variable importance, SHAP (global + local), PDP. Evaluate with stratified CV.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="section-label">Assignment 5: LangChain PoC</div>
+
+    <div class="card" style="border-left: 3px solid #dc3545;">
+      <div class="card-title">LangChain multi-agent proof-of-concept</div>
+      <div class="card-desc">Wire up three-stage architecture: ML Shortlist Agent + LLM Classifier Agent + HR Assistant Orchestrator. All 8 required components (agents, tools, memory, streaming, external API).</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">skill.md + template files</div>
+      <div class="card-desc">Evolve classification prompt v1 into structured skill.md format. Templates for agent tool use. Assignment 5 deliverable.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws2">WS2</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Assignment 5 design rationale report</div>
+      <div class="card-desc">One-page markdown report: system architecture, which agent does what, design decisions, LangChain as production framework.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+    <div class="section-label">AI Course (April 15 poster)</div>
+
+    <div class="card assignable">
+      <div class="card-title">GitHub repo + README</div>
+      <div class="card-desc">Comprehensive README: problem scope, architecture diagram, author bios (with GitHub profile links), responsible AI, references. Needs nice visuals.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">GitHub Projects kanban board</div>
+      <div class="card-desc">Migrate this task list to GitHub Projects with Done / In Progress / To Do columns. Must show active use during semester.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Streamlit web app (agentic AI)</div>
+      <div class="card-desc">User pastes position description, gets classification + pay range + explanation. Must demonstrate agentic design: reasoning, tool use, reflection.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Conference poster</div>
+      <div class="card-desc">Visual poster for April 15 presentation. Problem, approach, architecture, demo screenshots, responsible AI, research citation.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Research paper citation</div>
+      <div class="card-desc">Find 1+ academic paper (< 3 years old) on LLM classification, agentic AI, or HR automation. Must be discussed verbally and on poster.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Responsible AI section</div>
+      <div class="card-desc">Document: bias risks in classification, human-in-the-loop design, data privacy (no PII in prompts), explainability approach.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+    <div class="section-label">Big Data Course (April 17 deck)</div>
+
+    <div class="card assignable">
+      <div class="card-title">Deploy to Google Cloud SQL</div>
+      <div class="card-desc">Migrate SQLite to Cloud SQL (MySQL). Update notebook connection string. Demonstrates GCP tool usage per rubric.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Visualizations in notebook</div>
+      <div class="card-desc">Add matplotlib/seaborn/plotly charts: role distribution by family, pay band heatmap, SOC coverage, career group sizes. Rubric: "relevant charts."</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Slide deck for Big Data presentation</div>
+      <div class="card-desc">Problem, architecture diagram, pipeline demo, findings, ethical reflection, next steps. April 17.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Ethical reflection</div>
+      <div class="card-desc">Data privacy (public DHRM data, no PII), scraping ethics (rate limiting, robots.txt), bias in classification, responsible LLM use.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Project folder structure</div>
+      <div class="card-desc">Organize into data/, notebooks/, reports/, ppt/ per rubric requirements.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+    </div>
+
+    <div class="section-label">Shared / Workstream 2-4</div>
+
+    <div class="card assignable">
+      <div class="card-title">Pay estimation prompt template</div>
+      <div class="card-desc">Separate prompt for compensation: takes classification result + salary data, produces weighted pay math for blended roles.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws2">WS2</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Validate against 10+ W&amp;M positions</div>
+      <div class="card-desc">Find real W&amp;M job postings on Workday. Run through classification pipeline. Compare expected vs. actual. Document accuracy.</div>
+      <div class="card-meta">
+        <span class="tag tag-ws4">WS4</span>
+        <span class="tag tag-shared">Shared</span>
+      </div>
+    </div>
+
+    <div class="section-label">HR Handoff Package</div>
+
+    <div class="card assignable">
+      <div class="card-title">Data dictionary</div>
+      <div class="card-desc">Every field in every Excel file documented: description, type, source, update frequency. Instructions for adding proprietary data.</div>
+      <div class="card-meta">
+        <span class="tag tag-hr">HR Handoff</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">User guide / SOP</div>
+      <div class="card-desc">Step-by-step: how to classify a position, use prompts with Copilot/Gemini, interpret results, adjust blend threshold, update data files.</div>
+      <div class="card-meta">
+        <span class="tag tag-hr">HR Handoff</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+    <div class="card assignable">
+      <div class="card-title">Validation report</div>
+      <div class="card-desc">Test results against known positions. Accuracy assessment, edge cases, recommendations for ongoing validation.</div>
+      <div class="card-meta">
+        <span class="tag tag-hr">HR Handoff</span>
+        <span class="tag tag-ws4">WS4</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== BLOCKED ==================== -->
+  <div class="column col-blocked">
+    <div class="column-header">Blocked / Waiting <span class="count">(2)</span></div>
+
+    <div class="section-label">Waiting on Client</div>
+
+    <div class="card">
+      <div class="card-title">Proprietary data integration</div>
+      <div class="card-desc">HR has internal position data (PDF/Excel) they cannot share. Schema is designed for it, but we need their confirmation on column structure.</div>
+      <div class="card-meta">
+        <span class="tag tag-hr">HR Handoff</span>
+      </div>
+      <div class="owner">Blocker: Depends on client feedback</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">LLM API selection for Streamlit</div>
+      <div class="card-desc">App needs an LLM backend. Claude API? Gemini? Copilot? Depends on what HR prefers and what we can demo April 15.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+      <div class="owner">Blocker: Team decision needed</div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="footer">
+  GRIFFIN (Government Role Identification and Financial Framework Integration Network) | BUAD 5742 + BUAD 5722 | Spring 2026<br>
+  Blue-bordered cards = team members can pick up. Drag to GitHub Projects for live tracking.
+</div>
+
+</body>
+</html>

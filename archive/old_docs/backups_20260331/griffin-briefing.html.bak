@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRIFFIN Project Briefing -- Architecture & Direction</title>
+<style>
+  :root {
+    --navy: #1a2332;
+    --slate: #2d3748;
+    --blue: #3182ce;
+    --blue-light: #ebf4ff;
+    --green: #276749;
+    --green-light: #f0fff4;
+    --orange: #c05621;
+    --orange-light: #fffaf0;
+    --red: #c53030;
+    --red-light: #fff5f5;
+    --purple: #6b46c1;
+    --purple-light: #faf5ff;
+    --teal: #2c7a7b;
+    --teal-light: #e6fffa;
+    --gray-50: #f7fafc;
+    --gray-100: #edf2f7;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e0;
+    --gray-500: #718096;
+    --gray-600: #4a5568;
+    --gray-700: #2d3748;
+    --gray-800: #1a202c;
+    --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--gray-800);
+    line-height: 1.7;
+    background: var(--gray-50);
+  }
+
+  /* === HEADER === */
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--slate) 100%);
+    color: white;
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.5rem;
+  }
+  .hero .subtitle {
+    font-size: 1.1rem;
+    color: #a0aec0;
+    margin-bottom: 1.5rem;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: #cbd5e0;
+  }
+  .hero-meta span { display: flex; align-items: center; gap: 0.4rem; }
+
+  /* === NAVIGATION === */
+  .toc {
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0.8rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .toc a {
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    padding: 0.35rem 0.8rem;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .toc a:hover { background: var(--blue-light); color: var(--blue); }
+
+  /* === MAIN CONTENT === */
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* === SECTIONS === */
+  .section {
+    margin-bottom: 3rem;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--gray-200);
+  }
+  .section-number {
+    background: var(--navy);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-800);
+  }
+
+  /* === CARDS === */
+  .card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .card-blue { border-left: 4px solid var(--blue); }
+  .card-green { border-left: 4px solid var(--green); }
+  .card-orange { border-left: 4px solid var(--orange); }
+  .card-red { border-left: 4px solid var(--red); }
+  .card-purple { border-left: 4px solid var(--purple); }
+  .card-teal { border-left: 4px solid var(--teal); }
+
+  .card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--gray-800);
+  }
+  .card p, .card li {
+    font-size: 0.92rem;
+    color: var(--gray-700);
+    line-height: 1.65;
+  }
+  .card ul, .card ol {
+    padding-left: 1.25rem;
+    margin-top: 0.5rem;
+  }
+  .card li { margin-bottom: 0.35rem; }
+
+  /* === STATS ROW === */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--blue);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 0.78rem;
+    color: var(--gray-500);
+    margin-top: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* === DIAGRAMS === */
+  .diagram-container {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .diagram-container h4 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gray-500);
+    margin-bottom: 1rem;
+  }
+  .diagram-container svg {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* === TABLES === */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    margin: 1rem 0;
+  }
+  th {
+    background: var(--gray-100);
+    font-weight: 700;
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 2px solid var(--gray-300);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--gray-600);
+  }
+  td {
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--gray-200);
+    vertical-align: top;
+  }
+  tr:hover td { background: var(--gray-50); }
+
+  /* === TAGS === */
+  .tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .tag-done { background: #c6f6d5; color: #22543d; }
+  .tag-progress { background: #fefcbf; color: #744210; }
+  .tag-proposed { background: #e9d8fd; color: #44337a; }
+  .tag-risk { background: #fed7d7; color: #742a2a; }
+  .tag-question { background: #bee3f8; color: #2a4365; }
+
+  /* === CALLOUT === */
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  .callout-blue { background: var(--blue-light); border-left: 3px solid var(--blue); }
+  .callout-green { background: var(--green-light); border-left: 3px solid var(--green); }
+  .callout-orange { background: var(--orange-light); border-left: 3px solid var(--orange); }
+  .callout-red { background: var(--red-light); border-left: 3px solid var(--red); }
+  .callout-purple { background: var(--purple-light); border-left: 3px solid var(--purple); }
+  .callout strong { font-weight: 700; }
+
+  /* === CODE === */
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    background: var(--gray-100);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  /* === FOOTER === */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.78rem;
+    color: var(--gray-500);
+    border-top: 1px solid var(--gray-200);
+    margin-top: 3rem;
+  }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 1.6rem; }
+    .hero-meta { flex-direction: column; gap: 0.5rem; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .toc { padding: 0.5rem; }
+    .toc a { font-size: 0.72rem; padding: 0.25rem 0.5rem; }
+  }
+
+  @media print {
+    .toc { position: static; }
+    body { background: white; }
+    .hero { padding: 1.5rem; }
+    .section { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- HEADER -->
+<!-- ============================================================ -->
+<div class="hero">
+  <h1>GRIFFIN Project Briefing</h1>
+  <p class="subtitle">W&M HR Position Classification & Pay Matching Tool -- Architecture & Direction</p>
+  <div class="hero-meta">
+    <span>BUAD 5742 (AI) -- Poster April 15</span>
+    <span>BUAD 5722 (Big Data) -- Deck April 17</span>
+    <span>Client: Chas Ritinski, Total Rewards Manager, W&M HR</span>
+    <span>Updated: March 30, 2026</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- TABLE OF CONTENTS -->
+<!-- ============================================================ -->
+<nav class="toc">
+  <a href="#summary">Executive Summary</a>
+  <a href="#mvp">MVP vs. Full Scope</a>
+  <a href="#done">What's Done</a>
+  <a href="#pipeline">Current Pipeline</a>
+  <a href="#proposed">Proposed ML Integration</a>
+  <a href="#data-strategy">Data Strategy</a>
+  <a href="#course-mapping">Course Mapping</a>
+  <a href="#questions">Questions for Professors</a>
+  <a href="#risks">Risks & Mitigations</a>
+  <a href="#timeline">Timeline</a>
+</nav>
+
+<div class="container">
+
+<!-- ============================================================ -->
+<!-- 1. EXECUTIVE SUMMARY -->
+<!-- ============================================================ -->
+<div class="section" id="summary">
+  <div class="section-header">
+    <div class="section-number">1</div>
+    <h2>Executive Summary</h2>
+  </div>
+
+  <div class="callout callout-blue">
+    <strong>The problem:</strong> William & Mary HR manually classifies staff positions into Virginia's DHRM taxonomy to determine career groups and pay bands. This is slow, subjective, and hard to audit. We're building a tool that automates this using AI + ML, producing transparent, explainable recommendations that HR can trust.
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">56</div>
+      <div class="stat-label">Career Groups</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">294</div>
+      <div class="stat-label">Roles Parsed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">9</div>
+      <div class="stat-label">Pay Bands</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">666</div>
+      <div class="stat-label">SOC Codes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">100%</div>
+      <div class="stat-label">Coverage</div>
+    </div>
+  </div>
+
+  <div class="card card-green">
+    <h3>Where We Are</h3>
+    <p><strong>Workstream 1 (Data Collection) is complete.</strong> All 56 DHRM career group pages scraped, parsed (50 HTML + 6 PDF with 3 format variants), validated, loaded to SQLite, and exported as 7 Excel files. The FY26 salary structure, W&M pay grades (46 grades), and the DHRM-to-W&M crosswalk are built and validated (Band 7 -> S18 confirmed against the Assistant Controller example).</p>
+    <p style="margin-top:0.5rem"><strong>Client engagement is active.</strong> Chas Ritinski (Total Rewards Manager, W&M HR) responded on March 27 directing us to use W&M's public Workday job board (~149 active postings) as real position descriptions for training and testing. Postings include pay bands, job profiles, and compensation grades we can use as ground truth labels. Approved AI tools at W&M: <strong>Copilot and Gemini</strong>.</p>
+  </div>
+
+  <div class="card card-purple">
+    <h3>Where We're Heading</h3>
+    <p><strong>We're proposing a hybrid ML + LLM architecture</strong> that goes beyond simple prompt-based classification. An H2O AutoML model would provide quantitative shortlisting and confidence scoring, while the LLM provides nuanced final classification with natural language explanation. When both systems agree, confidence is high. When they disagree, HR is flagged to apply human judgment. This design demonstrates course concepts from both classes and produces a more robust, trustworthy tool.</p>
+    <p style="margin-top:0.75rem"><strong>New: AI Assignment 5 as Architecture Proof-of-Concept (PoC).</strong> Assignment 5 requires a LangChain multi-agent system with 8 components (agents, tools, memory, orchestration, streaming, etc.). We plan to <strong>integrate this directly into GRIFFIN</strong> as a formal milestone. Prof. Chung confirmed that LangChain is acceptable for production since it's open source -- so the LangChain multi-agent system IS the production architecture. The Streamlit app wraps LangChain agents directly, and LLM-agnostic design comes free via <code>init_chat_model()</code> (HR swaps between Gemini/Copilot/Claude by changing a config string). This satisfies Assignment 5, builds the production app, and meets the client's requirements in one effort.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. MVP vs. FULL SCOPE -->
+<!-- ============================================================ -->
+<div class="section" id="mvp">
+  <div class="section-header">
+    <div class="section-number">2</div>
+    <h2>MVP vs. Full Scope: What We Promised vs. What We're Building</h2>
+  </div>
+
+  <div class="callout callout-red">
+    <strong>Scope awareness:</strong> We added significant scope when we combined two course milestone projects (AI and Big Data) into one integrated system. The sections below describe the <em>full academic scope</em>. But the original commitment to our client is simpler, and that commitment comes first.
+  </div>
+
+  <div class="card card-green">
+    <h3>MVP: What We Promised the Client (Minimum Viable Product)</h3>
+    <p>We committed to delivering a tool similar to a <strong>Google Gemini Gem or a Claude Project</strong> -- a configured LLM workspace where HR can:</p>
+    <ol>
+      <li><strong>Paste a stale position description</strong> into the tool</li>
+      <li>Receive a <strong>classification recommendation</strong> (up to 2 career group/role matches)</li>
+      <li>Receive a <strong>compensation range recommendation</strong> (W&M salary grade, e.g., S15)</li>
+      <li>Read the LLM's <strong>reasoning</strong> for why it chose that classification</li>
+    </ol>
+    <p style="margin-top:0.75rem">This is achievable with what we have <em>today</em>: our DHRM reference data (56 career groups, 294 roles, pay crosswalk) loaded as context into any LLM, plus the classification prompt template (v1). <strong>No ML model, no multi-agent system, no H2O required.</strong> If everything else falls through, the client still gets what they were promised.</p>
+  </div>
+
+  <div class="card card-purple">
+    <h3>Full Scope: What We're Building for Both Courses</h3>
+    <p>On top of the MVP, we're building the hybrid ML + LLM architecture to demonstrate course concepts and produce a more robust, auditable tool:</p>
+    <table>
+      <thead><tr><th>Layer</th><th>What It Adds Beyond MVP</th><th>Course Value</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>H2O AutoML model</strong></td>
+          <td>Quantitative shortlist with probabilities -- a second opinion independent of the LLM</td>
+          <td>Big Data: AutoML, GBM, variable importance, SHAP, class imbalance</td>
+        </tr>
+        <tr>
+          <td><strong>Confidence scoring</strong></td>
+          <td>ML + LLM agreement check -- HIGH/MEDIUM/LOW confidence flag</td>
+          <td>Both: interpretability, trustworthy AI, audit trail</td>
+        </tr>
+        <tr>
+          <td><strong>LangChain multi-agent system</strong></td>
+          <td>Production backend + Assignment 5 deliverable (Prof. Chung confirmed open source is fine)</td>
+          <td>AI: agentic design, multi-agent orchestration, tool use, memory</td>
+        </tr>
+        <tr>
+          <td><strong>Fairness guard</strong></td>
+          <td>Flags potential bias in classifications across occupational families</td>
+          <td>Both: responsible AI, ethics reflection</td>
+        </tr>
+        <tr>
+          <td><strong>SHAP explanations</strong></td>
+          <td>Per-classification waterfall showing which features drove the ML's recommendation</td>
+          <td>Big Data: local + global interpretability</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-green">
+    <strong>The rule:</strong> MVP first, always. Every layer of the full scope is additive -- it makes the tool better, but the client's deliverable does not depend on it. If timeline pressure forces cuts, we cut from the bottom of the table up, never from the MVP.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 3. WHAT'S DONE -->
+<!-- ============================================================ -->
+<div class="section" id="done">
+  <div class="section-header">
+    <div class="section-number">3</div>
+    <h2>What's Done (Workstream 1)</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Deliverable</th>
+        <th>Output</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>DHRM web scraping (50 HTML + 6 PDF)</td>
+        <td>56 raw pages cached in <code>raw_pages/</code></td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>HTML parser (BeautifulSoup + regex)</td>
+        <td>50 career groups -> structured DataFrames</td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>PDF parser (pdfplumber, 3 format variants)</td>
+        <td>6 career groups -> structured DataFrames</td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>Data validation</td>
+        <td>56 groups, 294 roles, 4/4 factors, 666 SOC codes, 1,469 titles</td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>FY26 DHRM salary structure</td>
+        <td>9 pay bands with min/max from official PDF</td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>W&M salary structure</td>
+        <td>46 pay grades (S01-S23 + H01-H23)</td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>DHRM-to-W&M crosswalk</td>
+        <td>9-row mapping validated (Band 7 -> S18)</td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>SQLite database load</td>
+        <td>7 tables via sqlalchemy, verification queries passing</td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>Excel export for HR</td>
+        <td>7 .xlsx files in <code>hr_handoff/</code></td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>Classification prompt v1</td>
+        <td>Duty mapping + blend logic + explanation template</td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>Project spec (v3)</td>
+        <td>Full architecture, schema, deliverables checklist</td>
+        <td><span class="tag tag-done">Done</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- 4. CURRENT PIPELINE -->
+<!-- ============================================================ -->
+<div class="section" id="pipeline">
+  <div class="section-header">
+    <div class="section-number">4</div>
+    <h2>Current Pipeline (What Exists Today)</h2>
+  </div>
+
+  <p style="margin-bottom:1rem; font-size:0.92rem; color:var(--gray-700)">
+    The current system is a <strong>prompt-based pipeline</strong>: scrape DHRM reference data, structure it into tables, and provide it as context to an LLM along with a position description. The LLM does all the classification reasoning.
+  </p>
+
+  <div class="diagram-container">
+    <h4>Figure 1: Current Architecture (Prompt-Based)</h4>
+    <svg viewBox="0 0 880 420" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, system-ui, sans-serif">
+      <!-- Background -->
+      <rect width="880" height="420" fill="#f7fafc" rx="8"/>
+
+      <!-- Title -->
+      <text x="440" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#2d3748">CURRENT PIPELINE: Prompt-Based Classification</text>
+
+      <!-- === LAYER 1: Data Sources === -->
+      <rect x="20" y="50" width="840" height="90" rx="6" fill="#ebf4ff" stroke="#3182ce" stroke-width="1" stroke-dasharray="4"/>
+      <text x="40" y="70" font-size="11" font-weight="700" fill="#2a4365">LAYER 1: Data Sources</text>
+
+      <!-- DHRM HTML -->
+      <rect x="40" y="80" width="120" height="48" rx="4" fill="#3182ce" stroke="none"/>
+      <text x="100" y="100" text-anchor="middle" font-size="11" font-weight="600" fill="white">DHRM HTML</text>
+      <text x="100" y="116" text-anchor="middle" font-size="9" fill="#bee3f8">50 pages</text>
+
+      <!-- DHRM PDF -->
+      <rect x="180" y="80" width="120" height="48" rx="4" fill="#3182ce" stroke="none"/>
+      <text x="240" y="100" text-anchor="middle" font-size="11" font-weight="600" fill="white">DHRM PDF</text>
+      <text x="240" y="116" text-anchor="middle" font-size="9" fill="#bee3f8">6 pages (3 variants)</text>
+
+      <!-- FY26 Salary PDF -->
+      <rect x="320" y="80" width="120" height="48" rx="4" fill="#3182ce" stroke="none"/>
+      <text x="380" y="100" text-anchor="middle" font-size="11" font-weight="600" fill="white">FY26 Salary PDF</text>
+      <text x="380" y="116" text-anchor="middle" font-size="9" fill="#bee3f8">9 pay bands</text>
+
+      <!-- W&M Grades -->
+      <rect x="460" y="80" width="120" height="48" rx="4" fill="#3182ce" stroke="none"/>
+      <text x="520" y="100" text-anchor="middle" font-size="11" font-weight="600" fill="white">W&M Salary</text>
+      <text x="520" y="116" text-anchor="middle" font-size="9" fill="#bee3f8">46 pay grades</text>
+
+      <!-- Tools -->
+      <rect x="620" y="80" width="220" height="48" rx="4" fill="white" stroke="#3182ce" stroke-width="1"/>
+      <text x="730" y="100" text-anchor="middle" font-size="10" font-weight="600" fill="#2a4365">Tools: requests, BeautifulSoup,</text>
+      <text x="730" y="116" text-anchor="middle" font-size="10" fill="#4a5568">regex, pdfplumber, pandas</text>
+
+      <!-- === LAYER 2: Structured Data === -->
+      <rect x="20" y="155" width="840" height="80" rx="6" fill="#f0fff4" stroke="#276749" stroke-width="1" stroke-dasharray="4"/>
+      <text x="40" y="175" font-size="11" font-weight="700" fill="#22543d">LAYER 2: Structured Reference Data (SQLite + Excel)</text>
+
+      <!-- Tables -->
+      <rect x="40" y="185" width="100" height="38" rx="4" fill="#276749"/>
+      <text x="90" y="200" text-anchor="middle" font-size="9" font-weight="600" fill="white">career_groups</text>
+      <text x="90" y="214" text-anchor="middle" font-size="8" fill="#c6f6d5">56 rows</text>
+
+      <rect x="155" y="185" width="80" height="38" rx="4" fill="#276749"/>
+      <text x="195" y="200" text-anchor="middle" font-size="9" font-weight="600" fill="white">roles</text>
+      <text x="195" y="214" text-anchor="middle" font-size="8" fill="#c6f6d5">294 rows</text>
+
+      <rect x="250" y="185" width="90" height="38" rx="4" fill="#276749"/>
+      <text x="295" y="200" text-anchor="middle" font-size="9" font-weight="600" fill="white">soc_codes</text>
+      <text x="295" y="214" text-anchor="middle" font-size="8" fill="#c6f6d5">666 rows</text>
+
+      <rect x="355" y="185" width="110" height="38" rx="4" fill="#276749"/>
+      <text x="410" y="200" text-anchor="middle" font-size="9" font-weight="600" fill="white">historical_titles</text>
+      <text x="410" y="214" text-anchor="middle" font-size="8" fill="#c6f6d5">1,469 rows</text>
+
+      <rect x="480" y="185" width="110" height="38" rx="4" fill="#276749"/>
+      <text x="535" y="200" text-anchor="middle" font-size="9" font-weight="600" fill="white">dhrm_pay_bands</text>
+      <text x="535" y="214" text-anchor="middle" font-size="8" fill="#c6f6d5">9 rows</text>
+
+      <rect x="605" y="185" width="110" height="38" rx="4" fill="#276749"/>
+      <text x="660" y="200" text-anchor="middle" font-size="9" font-weight="600" fill="white">wm_pay_grades</text>
+      <text x="660" y="214" text-anchor="middle" font-size="8" fill="#c6f6d5">46 rows</text>
+
+      <rect x="730" y="185" width="110" height="38" rx="4" fill="#276749"/>
+      <text x="785" y="200" text-anchor="middle" font-size="9" font-weight="600" fill="white">crosswalk</text>
+      <text x="785" y="214" text-anchor="middle" font-size="8" fill="#c6f6d5">9 rows</text>
+
+      <!-- === LAYER 3: Classification === -->
+      <rect x="20" y="250" width="840" height="155" rx="6" fill="#faf5ff" stroke="#6b46c1" stroke-width="1" stroke-dasharray="4"/>
+      <text x="40" y="270" font-size="11" font-weight="700" fill="#44337a">LAYER 3: Classification (Current -- Prompt Only)</text>
+
+      <!-- Input: Position Description -->
+      <rect x="40" y="285" width="160" height="50" rx="4" fill="#e9d8fd" stroke="#6b46c1" stroke-width="1.5"/>
+      <text x="120" y="305" text-anchor="middle" font-size="10" font-weight="700" fill="#44337a">Position Description</text>
+      <text x="120" y="320" text-anchor="middle" font-size="9" fill="#553c9a">(HR pastes PD text)</text>
+
+      <!-- Arrow -->
+      <line x1="200" y1="310" x2="240" y2="310" stroke="#6b46c1" stroke-width="2" marker-end="url(#arrowPurple)"/>
+      <defs><marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#6b46c1"/></marker></defs>
+
+      <!-- Prompt Template -->
+      <rect x="245" y="280" width="140" height="60" rx="4" fill="#6b46c1"/>
+      <text x="315" y="300" text-anchor="middle" font-size="10" font-weight="600" fill="white">Prompt Template</text>
+      <text x="315" y="316" text-anchor="middle" font-size="9" fill="#e9d8fd">PD + Reference Data</text>
+      <text x="315" y="330" text-anchor="middle" font-size="9" fill="#e9d8fd">+ Classification Rules</text>
+
+      <!-- Arrow -->
+      <line x1="385" y1="310" x2="425" y2="310" stroke="#6b46c1" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+      <!-- LLM -->
+      <rect x="430" y="280" width="120" height="60" rx="25" fill="#44337a"/>
+      <text x="490" y="306" text-anchor="middle" font-size="12" font-weight="700" fill="white">LLM</text>
+      <text x="490" y="322" text-anchor="middle" font-size="9" fill="#d6bcfa">Any provider</text>
+
+      <!-- Arrow -->
+      <line x1="550" y1="310" x2="590" y2="310" stroke="#6b46c1" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+      <!-- Output -->
+      <rect x="595" y="280" width="245" height="105" rx="4" fill="white" stroke="#6b46c1" stroke-width="1.5"/>
+      <text x="717" y="300" text-anchor="middle" font-size="10" font-weight="700" fill="#44337a">Classification Output</text>
+      <text x="610" y="320" font-size="9" fill="#553c9a">  Career Group: 19036</text>
+      <text x="610" y="335" font-size="9" fill="#553c9a">  Role: Financial Svcs Mgr III</text>
+      <text x="610" y="350" font-size="9" fill="#553c9a">  Pay Band: 7 -> W&M Grade S18</text>
+      <text x="610" y="365" font-size="9" fill="#553c9a">  Explanation: (narrative)</text>
+      <text x="610" y="380" font-size="9" fill="#c53030">  Confidence: ???</text>
+
+      <!-- Reference data arrow down -->
+      <line x1="440" y1="225" x2="440" y2="275" stroke="#276749" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrowGreen)"/>
+      <defs><marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#276749"/></marker></defs>
+      <text x="450" y="255" font-size="8" fill="#276749">Context window</text>
+    </svg>
+  </div>
+
+  <div class="callout callout-orange">
+    <strong>The gap:</strong> The current pipeline has no confidence signal. The LLM says "this is a Financial Services Manager III" but there's no quantitative measure of how certain that classification is. HR has to trust the LLM's self-reported reasoning -- which is persuasive but not verifiable. The red "???" in the output is what we're proposing to fix.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 5. PROPOSED ML INTEGRATION -->
+<!-- ============================================================ -->
+<div class="section" id="proposed">
+  <div class="section-header">
+    <div class="section-number">5</div>
+    <h2>Proposed Architecture: Hybrid ML + LLM</h2>
+  </div>
+
+  <p style="margin-bottom:1rem; font-size:0.92rem; color:var(--gray-700)">
+    We're proposing a <strong>three-stage "trust but verify" architecture</strong> inspired by how banks process loan applications: a quantitative pre-screen (credit score), an expert reviewer (underwriter), and a compliance audit (QC). Each stage uses a different technique, so when they agree, confidence is high.
+  </p>
+
+  <div class="diagram-container">
+    <h4>Figure 2: Proposed Architecture (Hybrid ML + LLM)</h4>
+    <svg viewBox="0 0 880 560" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, system-ui, sans-serif">
+      <rect width="880" height="560" fill="#f7fafc" rx="8"/>
+      <text x="440" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#2d3748">PROPOSED PIPELINE: Three-Stage "Trust But Verify"</text>
+
+      <!-- === INPUT === -->
+      <rect x="300" y="45" width="280" height="50" rx="6" fill="#e9d8fd" stroke="#6b46c1" stroke-width="1.5"/>
+      <text x="440" y="66" text-anchor="middle" font-size="11" font-weight="700" fill="#44337a">Position Description (Input)</text>
+      <text x="440" y="82" text-anchor="middle" font-size="9" fill="#553c9a">Raw text from HR or W&M Workday posting</text>
+
+      <!-- Arrow down to feature extraction -->
+      <line x1="440" y1="95" x2="440" y2="115" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowGray)"/>
+      <defs><marker id="arrowGray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#4a5568"/></marker></defs>
+
+      <!-- === FEATURE EXTRACTION === -->
+      <rect x="230" y="115" width="420" height="55" rx="6" fill="#fffaf0" stroke="#c05621" stroke-width="1.5"/>
+      <text x="440" y="137" text-anchor="middle" font-size="11" font-weight="700" fill="#7b341e">Feature Extraction (LLM-Assisted)</text>
+      <text x="440" y="155" text-anchor="middle" font-size="9" fill="#9c4221">Budget mentions | Supervision level | Domain keywords | Salary range | Complexity signals</text>
+
+      <!-- Split into two paths -->
+      <line x1="350" y1="170" x2="200" y2="205" stroke="#3182ce" stroke-width="2" marker-end="url(#arrowBlue)"/>
+      <line x1="530" y1="170" x2="660" y2="205" stroke="#6b46c1" stroke-width="2" marker-end="url(#arrowPurple)"/>
+      <defs><marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#3182ce"/></marker></defs>
+
+      <!-- === STAGE 1: ML MODEL (LEFT) === -->
+      <rect x="30" y="205" width="340" height="145" rx="6" fill="#ebf4ff" stroke="#3182ce" stroke-width="1.5"/>
+      <text x="200" y="225" text-anchor="middle" font-size="12" font-weight="700" fill="#2a4365">STAGE 1: ML Shortlist</text>
+      <text x="200" y="240" text-anchor="middle" font-size="9" fill="#4a5568">(Quantitative -- like a credit score pre-screen)</text>
+
+      <rect x="50" y="252" width="130" height="40" rx="4" fill="#3182ce"/>
+      <text x="115" y="269" text-anchor="middle" font-size="10" font-weight="600" fill="white">H2O AutoML</text>
+      <text x="115" y="283" text-anchor="middle" font-size="8" fill="#bee3f8">GBM / RF / Stacking</text>
+
+      <rect x="195" y="252" width="155" height="40" rx="4" fill="white" stroke="#3182ce" stroke-width="1"/>
+      <text x="272" y="268" text-anchor="middle" font-size="9" font-weight="600" fill="#2a4365">Output: Top 3-5 candidate</text>
+      <text x="272" y="282" text-anchor="middle" font-size="9" fill="#4a5568">career groups + probabilities</text>
+
+      <rect x="50" y="300" width="300" height="40" rx="4" fill="#ebf4ff" stroke="#3182ce" stroke-width="1"/>
+      <text x="200" y="316" text-anchor="middle" font-size="9" font-weight="600" fill="#2a4365">Interpretability: SHAP (global + local), PDP, Variable Importance</text>
+      <text x="200" y="330" text-anchor="middle" font-size="8" fill="#4a5568">"Budget responsibility and supervision level drive this shortlist"</text>
+
+      <!-- === STAGE 2: LLM (RIGHT) === -->
+      <rect x="510" y="205" width="340" height="145" rx="6" fill="#faf5ff" stroke="#6b46c1" stroke-width="1.5"/>
+      <text x="680" y="225" text-anchor="middle" font-size="12" font-weight="700" fill="#44337a">STAGE 2: LLM Classification</text>
+      <text x="680" y="240" text-anchor="middle" font-size="9" fill="#4a5568">(Qualitative -- like an underwriter review)</text>
+
+      <rect x="540" y="252" width="120" height="40" rx="20" fill="#44337a"/>
+      <text x="600" y="269" text-anchor="middle" font-size="10" font-weight="700" fill="white">LLM</text>
+      <text x="600" y="283" text-anchor="middle" font-size="8" fill="#d6bcfa">Any provider</text>
+
+      <rect x="675" y="252" width="155" height="40" rx="4" fill="white" stroke="#6b46c1" stroke-width="1"/>
+      <text x="752" y="268" text-anchor="middle" font-size="9" font-weight="600" fill="#44337a">Output: Classification +</text>
+      <text x="752" y="282" text-anchor="middle" font-size="9" fill="#553c9a">duty mapping + explanation</text>
+
+      <rect x="540" y="300" width="290" height="40" rx="4" fill="#faf5ff" stroke="#6b46c1" stroke-width="1"/>
+      <text x="685" y="316" text-anchor="middle" font-size="9" font-weight="600" fill="#44337a">Agentic Design: Reasoning -> Tool Use -> Reflection</text>
+      <text x="685" y="330" text-anchor="middle" font-size="8" fill="#553c9a">"Analyzed 6 duties, mapped to compensable factors, selected best fit"</text>
+
+      <!-- Merge arrows into Stage 3 -->
+      <line x1="200" y1="350" x2="340" y2="395" stroke="#2c7a7b" stroke-width="2" marker-end="url(#arrowTeal)"/>
+      <line x1="680" y1="350" x2="540" y2="395" stroke="#2c7a7b" stroke-width="2" marker-end="url(#arrowTeal)"/>
+      <defs><marker id="arrowTeal" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#2c7a7b"/></marker></defs>
+
+      <!-- === STAGE 3: CONFIDENCE + FAIRNESS === -->
+      <rect x="170" y="395" width="540" height="120" rx="6" fill="#e6fffa" stroke="#2c7a7b" stroke-width="1.5"/>
+      <text x="440" y="415" text-anchor="middle" font-size="12" font-weight="700" fill="#234e52">STAGE 3: Confidence Scoring + Fairness Check</text>
+      <text x="440" y="430" text-anchor="middle" font-size="9" fill="#4a5568">(Audit layer -- like a compliance review)</text>
+
+      <!-- Agreement check -->
+      <rect x="190" y="442" width="165" height="60" rx="4" fill="#2c7a7b"/>
+      <text x="272" y="462" text-anchor="middle" font-size="10" font-weight="600" fill="white">Agreement Check</text>
+      <text x="272" y="478" text-anchor="middle" font-size="8" fill="#b2f5ea">ML shortlist contains</text>
+      <text x="272" y="490" text-anchor="middle" font-size="8" fill="#b2f5ea">LLM's pick? -> confidence</text>
+
+      <!-- SHAP local -->
+      <rect x="370" y="442" width="155" height="60" rx="4" fill="#2c7a7b"/>
+      <text x="447" y="462" text-anchor="middle" font-size="10" font-weight="600" fill="white">SHAP Local</text>
+      <text x="447" y="478" text-anchor="middle" font-size="8" fill="#b2f5ea">Per-classification</text>
+      <text x="447" y="490" text-anchor="middle" font-size="8" fill="#b2f5ea">explanation waterfall</text>
+
+      <!-- Fairness -->
+      <rect x="540" y="442" width="155" height="60" rx="4" fill="#2c7a7b"/>
+      <text x="617" y="462" text-anchor="middle" font-size="10" font-weight="600" fill="white">Fairness Guard</text>
+      <text x="617" y="478" text-anchor="middle" font-size="8" fill="#b2f5ea">Protected class check</text>
+      <text x="617" y="490" text-anchor="middle" font-size="8" fill="#b2f5ea">Missing data != penalty</text>
+
+      <!-- === FINAL OUTPUT === -->
+      <line x1="440" y1="515" x2="440" y2="540" stroke="#234e52" stroke-width="2" marker-end="url(#arrowTeal)"/>
+      <rect x="250" y="535" width="380" height="20" rx="4" fill="#234e52"/>
+      <text x="440" y="549" text-anchor="middle" font-size="10" font-weight="700" fill="white">OUTPUT: Classification + Confidence (HIGH/MEDIUM/LOW) + Explanation + Fairness Flag</text>
+    </svg>
+  </div>
+
+  <div class="card card-teal">
+    <h3>The Banking Analogy</h3>
+    <p>Think of how a bank processes a loan application:</p>
+    <table>
+      <thead>
+        <tr><th>Banking</th><th>GRIFFIN</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Credit score (FICO)</td>
+          <td>ML model shortlist</td>
+          <td>Fast, quantitative, consistent pre-screen</td>
+        </tr>
+        <tr>
+          <td>Underwriter review</td>
+          <td>LLM classification</td>
+          <td>Nuanced judgment on full context</td>
+        </tr>
+        <tr>
+          <td>Compliance audit</td>
+          <td>Confidence + fairness check</td>
+          <td>Ensures no bias, flags uncertainty</td>
+        </tr>
+        <tr>
+          <td>No credit history != reject</td>
+          <td>Missing SOC codes != lower classification</td>
+          <td>Absence of data is not negative signal</td>
+        </tr>
+        <tr>
+          <td>Protected class compliance (ECOA)</td>
+          <td>Occupational family fairness check</td>
+          <td>No systematic under-classification of historically undervalued roles</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card card-blue">
+    <h3>Why Three Stages Instead of One?</h3>
+    <ul>
+      <li><strong>Redundancy builds trust:</strong> When ML and LLM independently agree, HR can act with confidence. When they disagree, that's a signal to apply human judgment -- not a failure.</li>
+      <li><strong>Different failure modes:</strong> ML models fail on out-of-distribution inputs (novel roles). LLMs fail on hallucination and inconsistency. By combining them, we cover each other's blind spots.</li>
+      <li><strong>Auditability:</strong> Every classification comes with: (a) what the ML model predicted and why (SHAP), (b) what the LLM decided and why (narrative), (c) whether they agreed (confidence), and (d) whether fairness flags were triggered. This is an audit trail HR can defend.</li>
+    </ul>
+  </div>
+
+  <div class="card card-orange">
+    <h3>Assignment 5 as Proof-of-Concept: LangChain Multi-Agent Mapping</h3>
+    <p>AI Assignment 5 requires 8 specific multi-agent components. Each maps directly to a piece of the GRIFFIN architecture, so we build the PoC and satisfy the assignment in one deliverable:</p>
+    <table>
+      <thead><tr><th>#</th><th>Assignment 5 Component</th><th>GRIFFIN Implementation</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><strong>LLM Initialization</strong></td><td><code>init_chat_model()</code> for the classification LLM; experiment with temperature for creative vs. deterministic classification</td></tr>
+        <tr><td>2</td><td><strong>Agent Creation</strong></td><td><strong>ML Shortlist Agent</strong> (queries H2O model, returns top candidates + probabilities) and <strong>LLM Classifier Agent</strong> (maps duties to compensable factors, selects final classification)</td></tr>
+        <tr><td>3</td><td><strong>Message Handling</strong></td><td>Multi-turn HR session: submit PD -> get classification -> ask follow-up ("what if this role also manages a budget?")</td></tr>
+        <tr><td>4</td><td><strong>Streaming Output</strong></td><td>Stream the LLM's classification reasoning so HR sees the thought process in real-time</td></tr>
+        <tr><td>5</td><td><strong>Custom Tools</strong></td><td><code>@tool query_dhrm_database()</code> -- search career groups, roles, SOC codes; <code>@tool extract_features_from_pd()</code> -- parse structured signals from PD text</td></tr>
+        <tr><td>6</td><td><strong>External API Tool</strong></td><td>Tavily web search for current BLS salary benchmarks by SOC code, or Workday API for live posting lookup</td></tr>
+        <tr><td>7</td><td><strong>Agent Memory</strong></td><td><code>InMemorySaver</code> checkpointer so the system remembers prior classifications in an HR session ("classify another position in the same department")</td></tr>
+        <tr><td>8</td><td><strong>Multi-Agent Orchestration</strong></td><td><strong>HR Assistant Orchestrator</strong> delegates to ML Shortlist + LLM Classifier sub-agents, then runs Stage 3 confidence/fairness check before returning the final result</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-orange" style="margin-top:1rem">
+      <strong>Build sequence:</strong> LangChain multi-agent system built with real GRIFFIN data (satisfies Assignment 5). The same LangChain code powers the production Streamlit app -- no framework stripping needed. LLM-agnostic design comes free via <code>init_chat_model()</code> (Copilot/Gemini/Claude swappable by config). Prof. Chung confirmed LangChain is acceptable for production since it's open source.
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 6. DATA STRATEGY -->
+<!-- ============================================================ -->
+<div class="section" id="data-strategy">
+  <div class="section-header">
+    <div class="section-number">6</div>
+    <h2>Data Strategy for ML Training</h2>
+  </div>
+
+  <div class="callout callout-green">
+    <strong>Good news:</strong> Our client (Chas Ritinski, W&M HR) directed us to W&M's public Workday job board (<code>williammary.wd12.myworkdayjobs.com/WM</code>) with ~149 active postings. These postings include compensation grades (e.g., S15), job profiles (e.g., JP0506), and job family labels -- giving us <strong>labeled ground truth</strong> for training. We discovered that Workday exposes a clean JSON API, so we can collect all postings with <code>requests</code> alone (no Selenium needed). We will need to scrape and cache these postings ourselves.
+  </div>
+
+  <div class="callout callout-orange">
+    <strong>The design challenge:</strong> These postings are <em>published</em> job ads that already contain the classification answer (pay grade, job profile, job family). But when HR actually uses our tool, they'll be classifying a <strong>new PD that has no classification yet</strong>. So we must strip all classification/pay fields from the training input and teach the model to predict from duties, qualifications, and context alone. Training on uncensored PDs would just teach the model to read the label -- which is useless.
+  </div>
+
+  <div class="card card-blue">
+    <h3>Available Data Sources</h3>
+    <table>
+      <thead>
+        <tr><th>Source</th><th>Size</th><th>Quality</th><th>Risk</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>W&M Workday postings</strong> (client-directed, public JSON API)</td>
+          <td>~149 active listings</td>
+          <td><span class="tag tag-done">Gold</span> -- client directed us here; includes pay grade + job profile labels</td>
+          <td>Small N; must strip labels from input to avoid data leakage</td>
+        </tr>
+        <tr>
+          <td><strong>Other VA public universities</strong></td>
+          <td>Hundreds to thousands</td>
+          <td><span class="tag tag-progress">Silver</span> -- same DHRM taxonomy</td>
+          <td>Institutional style differences introduce noise</td>
+        </tr>
+        <tr>
+          <td><strong>DHRM role descriptions</strong></td>
+          <td>294 (our reference data)</td>
+          <td><span class="tag tag-progress">Bronze</span> -- describes the role, not a real PD</td>
+          <td>Not real-world text; overly formal</td>
+        </tr>
+        <tr>
+          <td><strong>LLM-generated synthetic PDs</strong></td>
+          <td>Unlimited</td>
+          <td><span class="tag tag-proposed">Copper</span> -- augmentation only</td>
+          <td>Synthetic text may not capture real PD patterns</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card card-green">
+    <h3>Recommended Approach: Feature Engineering + Weighted Sources</h3>
+    <p>Instead of training on raw PD text (which needs thousands of examples), we extract <strong>structured features</strong> from each position description and train on those. This turns a text classification problem into a tabular classification problem -- and H2O's GBM/RF handles 149 tabular rows well.</p>
+
+    <p style="margin-top: 0.75rem"><strong>Proposed features (extracted from each PD by LLM or regex):</strong></p>
+    <table>
+      <thead>
+        <tr><th>Feature</th><th>Maps To</th><th>Example</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Budget/financial responsibility mentioned?</td><td>Accountability factor</td><td>"manages $2M operating budget"</td></tr>
+        <tr><td>Number of direct reports</td><td>Complexity factor</td><td>"supervises 12 staff" -> 12</td></tr>
+        <tr><td>Technical specialization domain</td><td>Occupational family</td><td>"network infrastructure" -> IT</td></tr>
+        <tr><td>Posted salary range</td><td>Pay band (direct signal)</td><td>"$85K-$120K" -> Band 6-7</td></tr>
+        <tr><td>Education requirement level</td><td>Complexity factor</td><td>"Master's required" -> high</td></tr>
+        <tr><td>Decision-making scope</td><td>Decision-making factor</td><td>"university-wide policy" -> broad</td></tr>
+        <tr><td>External contact level</td><td>Results factor</td><td>"federal agency liaison" -> high</td></tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top: 0.75rem"><strong>If using multiple data sources, apply weights:</strong></p>
+    <table>
+      <thead><tr><th>Source</th><th>Weight</th><th>Rationale</th></tr></thead>
+      <tbody>
+        <tr><td>W&M postings (human-verified labels)</td><td>1.0</td><td>Gold standard -- our actual client's data</td></tr>
+        <tr><td>W&M postings (LLM-labeled)</td><td>0.7</td><td>Good but not human-verified</td></tr>
+        <tr><td>Other VA universities</td><td>0.5</td><td>Same taxonomy, different institutional voice</td></tr>
+        <tr><td>Synthetic augmentation</td><td>0.3</td><td>Fills gaps in underrepresented families</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-purple">
+    <strong>Open question for professors:</strong> With ~149 W&M postings (labels stripped) as our primary training set, is the feature engineering approach (tabular GBM on extracted signals) sound for this N? We could supplement with other VA public university postings (same DHRM taxonomy, different institutional style) but that introduces noise. The trade-off is sample size vs. data quality.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 7. COURSE CONCEPT MAPPING -->
+<!-- ============================================================ -->
+<div class="section" id="course-mapping">
+  <div class="section-header">
+    <div class="section-number">7</div>
+    <h2>Course Concept Mapping</h2>
+  </div>
+
+  <p style="margin-bottom:1rem; font-size:0.92rem; color:var(--gray-700)">
+    The hybrid architecture directly demonstrates concepts from both courses. Here's the mapping:
+  </p>
+
+  <div class="card card-blue">
+    <h3>Big Data (BUAD 5722) -- Prof. Castellanos</h3>
+    <table>
+      <thead><tr><th>Lecture Concept</th><th>Where It Appears in GRIFFIN</th></tr></thead>
+      <tbody>
+        <tr><td><strong>H2O AutoML</strong> (Week 11)</td><td>Stage 1 ML shortlisting -- trains GBM, RF, XGBoost, stacked ensembles, ranks on leaderboard</td></tr>
+        <tr><td><strong>Stacked Ensembles</strong> (Week 11)</td><td>AutoML's top model is likely a stacked ensemble (meta-learner combining base models)</td></tr>
+        <tr><td><strong>Variable Importance</strong> (Week 11)</td><td>Global interpretability: "What features most influence pay band assignment across all roles?"</td></tr>
+        <tr><td><strong>Partial Dependence Plots</strong> (Week 11)</td><td>"How does supervision level affect classification?" -- marginal effect of each feature</td></tr>
+        <tr><td><strong>SHAP Values (Global)</strong> (Week 11)</td><td>Summary plot showing which features push toward higher/lower pay bands overall</td></tr>
+        <tr><td><strong>SHAP Values (Local)</strong> (Week 11)</td><td>Per-classification waterfall: "This specific position scored Band 7 because of X, Y, Z"</td></tr>
+        <tr><td><strong>GenAI API Calls</strong> (Week 11)</td><td>LLM API integration for feature extraction and Stage 2 classification</td></tr>
+        <tr><td><strong>Class Imbalance</strong> (CH06)</td><td>Some occupational families have 50+ roles, others have 5 -- handle with stratified sampling or SMOTE</td></tr>
+        <tr><td><strong>Confusion Matrix / F1</strong> (CH06)</td><td>ML model evaluation: precision/recall per career group, multi-class confusion matrix</td></tr>
+        <tr><td><strong>Web Scraping + ETL</strong></td><td>56-page DHRM scrape, 3 PDF format variants, SQLite load, Cloud SQL migration</td></tr>
+        <tr><td><strong>sqlalchemy + Cloud SQL</strong></td><td>Database layer -- SQLite locally, GCP Cloud SQL for production</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card card-purple">
+    <h3>AI (BUAD 5742) -- Prof. Chung</h3>
+    <table>
+      <thead><tr><th>Lecture Concept</th><th>Where It Appears in GRIFFIN</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Agentic AI Design</strong></td><td>Three-stage pipeline: reasoning (feature extraction), tool use (ML model + DB queries), reflection (confidence check)</td></tr>
+        <tr><td><strong>Multi-Agent Systems (Assignment 5)</strong></td><td>LangChain PoC with orchestrator + sub-agents (ML Shortlist, LLM Classifier), custom tools, memory, streaming -- all 8 required components mapped to GRIFFIN architecture</td></tr>
+        <tr><td><strong>Prompt Engineering</strong></td><td>Classification prompt template with structured output, blend logic, explanation generation</td></tr>
+        <tr><td><strong>skill.md Templates (Assignment 5)</strong></td><td>Classification prompt evolved into skill.md format with structured parameters and templates for agent tool use</td></tr>
+        <tr><td><strong>LLM-Agnostic Design</strong></td><td>LangChain's <code>init_chat_model()</code> abstracts the provider -- Copilot/Gemini/Claude swappable by config string. No vendor lock-in.</td></tr>
+        <tr><td><strong>Vibe Coding / Streamlit</strong></td><td>Interactive web app: paste PD -> get classification + confidence + explanation</td></tr>
+        <tr><td><strong>Human-in-the-Loop</strong></td><td>AI recommends, HR decides. Low-confidence results flagged for human review.</td></tr>
+        <tr><td><strong>Responsible AI</strong></td><td>Fairness checks, bias monitoring, transparency (all reasoning shown), explainability (SHAP + narrative)</td></tr>
+        <tr><td><strong>Classification (CH05-06)</strong></td><td>Multi-class classification with evaluation metrics, class imbalance handling</td></tr>
+        <tr><td><strong>Embeddings (CH09)</strong></td><td>Potential: text embeddings for PD similarity scoring (future enhancement)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card card-green">
+    <h3>Cross-Course Synergy (Both Professors Should Notice)</h3>
+    <ul>
+      <li><strong>Interpretability at every layer:</strong> SHAP for ML, natural language for LLM, confidence scoring for the combined output. This isn't a black box -- it's a glass box.</li>
+      <li><strong>The "credit score" framing:</strong> Missing data (sparse SOC codes, no historical titles) doesn't penalize a classification -- just like a thin credit file shouldn't auto-reject a loan applicant. We handle missing features explicitly.</li>
+      <li><strong>Compliance / fairness:</strong> Historically undervalued occupational families (clerical, custodial) shouldn't be systematically under-classified compared to traditionally valued ones (IT, financial). The fairness guard checks for this.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 8. QUESTIONS FOR PROFESSORS -->
+<!-- ============================================================ -->
+<div class="section" id="questions">
+  <div class="section-header">
+    <div class="section-number">8</div>
+    <h2>Questions for Professors</h2>
+  </div>
+
+  <p style="margin-bottom:1rem; font-size:0.92rem; color:var(--gray-700)">
+    We'd welcome guidance on these open questions. They're listed by course, though several span both.
+  </p>
+
+  <div class="card card-blue">
+    <h3>For Prof. Castellanos (Big Data)</h3>
+    <ol>
+      <li><strong>Data volume:</strong> Our client directed us to W&M's Workday board (~149 postings with pay grade labels). After stripping classification fields from the input, is the feature engineering approach (extract structured signals, train GBM on tabular data) appropriate for this N, or should we pursue data augmentation (other VA universities, synthetic generation)?</li>
+      <li><strong>Weighted training:</strong> If we supplement with other VA university postings (same DHRM taxonomy, different institutional style), is H2O's <code>weights_column</code> the right mechanism to discount external data? Any recommended weight ratios?</li>
+      <li><strong>Class imbalance:</strong> Some occupational families have 50+ roles, others have 5. Should we use SMOTE, class weighting, or stratified sampling? With only 149 training examples, oversampling feels risky.</li>
+      <li><strong>Evaluation:</strong> For a 56-class (career group) or 7-class (family) classification problem, what evaluation metrics are most appropriate? Multi-class AUC? Macro-averaged F1? Top-3 accuracy?</li>
+      <li><strong>Scope check:</strong> Is the three-stage architecture (ML shortlist -> LLM classify -> confidence score) too ambitious for the timeline, or does the use of AutoML (one call, many models) make it feasible?</li>
+    </ol>
+  </div>
+
+  <div class="card card-purple">
+    <h3>For Prof. Chung (AI)</h3>
+    <ol>
+      <li><strong>Assignment 5 integration:</strong> Per your confirmation that LangChain is acceptable for production (open source), we're building Assignment 5's multi-agent system as GRIFFIN's production backend -- the ML Shortlist Agent and LLM Classifier Agent become LangChain agents with custom tools, memory, and an orchestrator. The Streamlit app wraps this directly. Is there any additional separation you'd like between the Assignment 5 deliverable and the final project, or is a shared codebase the right approach?</li>
+      <li><strong>Agentic framing:</strong> Does the three-stage pipeline (reasoning -> tool use -> reflection) satisfy the "agentic capabilities" requirement? The ML model is a "tool" the agent consults, SHAP is the "reflection" layer. The LangChain PoC makes this explicit with <code>create_agent()</code> and <code>@tool</code> decorators.</li>
+      <li><strong>skill.md templates:</strong> Assignment 5 also asks for skill.md and template files. We plan to evolve our existing classification prompt template (v1) into structured skill.md files that encode GRIFFIN's classification logic. Should these be designed as reusable components the LangChain agents invoke, or standalone prompt templates HR could use independently?</li>
+      <li><strong>Research paper direction:</strong> Should we look for papers on "LLM + ML hybrid systems," "confidence calibration for LLM outputs," or "AI-assisted job classification"? Which angle would be strongest for the poster?</li>
+      <li><strong>Streamlit scope:</strong> Should the web app show the full three-stage pipeline (ML shortlist -> LLM -> confidence), or just the final output with a "show details" expander?</li>
+      <li><strong>Responsible AI depth:</strong> The fairness guard is a concept in our design -- should we implement a quantitative bias metric (e.g., disparate impact ratio across occupational families) or is a qualitative discussion sufficient for the poster?</li>
+    </ol>
+  </div>
+
+  <div class="card card-teal">
+    <h3>For Both Professors</h3>
+    <ol>
+      <li><strong>Label stripping:</strong> Our training data (W&M Workday postings) already contains the classification answer (pay grade, job profile). We plan to strip these fields from the input text so the model learns from duties/qualifications, not labels. Chas also noted "not all exempt positions have a matching DHRM code." How should we handle positions that don't map cleanly -- exclude from training, or include with a "no match" class?</li>
+      <li><strong>Scope vs. depth:</strong> We could build a simpler system more thoroughly (just LLM + confidence) or a more ambitious system with known gaps (full ML + LLM + fairness, but fairness is qualitative only). Given the timeline (4 projects in 3 weeks), which direction is more valued for grading?</li>
+      <li><strong>LangChain in production:</strong> Prof. Chung confirmed LangChain is acceptable for production since it's open source. The Assignment 5 multi-agent system and the Streamlit app share the same LangChain backend. Is there anything additional you'd like to see documented about this unified architecture?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 9. RISKS & MITIGATIONS -->
+<!-- ============================================================ -->
+<div class="section" id="risks">
+  <div class="section-header">
+    <div class="section-number">9</div>
+    <h2>Risks & Mitigations</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:5%">#</th>
+        <th style="width:25%">Risk</th>
+        <th style="width:10%">Impact</th>
+        <th style="width:10%">Likelihood</th>
+        <th style="width:50%">Mitigation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>R1</td>
+        <td><strong>Small training dataset (149 rows)</strong></td>
+        <td><span class="tag tag-risk">High</span></td>
+        <td><span class="tag tag-progress">Medium</span></td>
+        <td>Feature engineering reduces dimensionality; GBM handles small N well. If model performance is poor, fall back to LLM-only with confidence based on prompt self-assessment. The ML model adds value but isn't a single point of failure.</td>
+      </tr>
+      <tr>
+        <td>R2</td>
+        <td><strong>Data leakage from label fields in training PDs</strong></td>
+        <td><span class="tag tag-risk">High</span></td>
+        <td><span class="tag tag-progress">Medium</span></td>
+        <td>Workday postings contain pay grade, job profile, and job family in the text. Must strip all classification fields before using as training input. If any labels leak through, model accuracy is artificially inflated and useless on real (unclassified) PDs. Mitigation: regex-based censoring + manual spot-check of 10+ censored PDs.</td>
+      </tr>
+      <tr>
+        <td>R3</td>
+        <td><strong>Timeline: 4 projects in 3 weeks</strong></td>
+        <td><span class="tag tag-risk">High</span></td>
+        <td><span class="tag tag-risk">High</span></td>
+        <td>ML2 + Data Viz due first (Apr 8-9). GRIFFIN doesn't go full sprint until Apr 9. WS1 being done gives us a head start. Team task distribution is planned.</td>
+      </tr>
+      <tr>
+        <td>R4</td>
+        <td><strong>Class imbalance in training data</strong></td>
+        <td><span class="tag tag-progress">Medium</span></td>
+        <td><span class="tag tag-risk">High</span></td>
+        <td>Predict at occupational family level (7 classes, more balanced) rather than career group (56 classes). Use stratified CV. Report top-3 accuracy, not just top-1.</td>
+      </tr>
+      <tr>
+        <td>R5</td>
+        <td><strong>Noise from external university data</strong></td>
+        <td><span class="tag tag-progress">Medium</span></td>
+        <td><span class="tag tag-progress">Medium</span></td>
+        <td>Current recommendation: use W&M data only for v1. Mention external data as "future enhancement" in poster's "What's Next?" section. Avoids the noise risk entirely.</td>
+      </tr>
+      <tr>
+        <td>R6</td>
+        <td><strong>LLM API costs / rate limits</strong></td>
+        <td><span class="tag tag-question">Low</span></td>
+        <td><span class="tag tag-progress">Medium</span></td>
+        <td>Feature extraction + classification for 149 postings is ~300 API calls. At typical pricing, < $5 total. Cache all results to avoid repeat calls.</td>
+      </tr>
+      <tr>
+        <td>R7</td>
+        <td><strong>Fairness check is qualitative, not quantitative</strong></td>
+        <td><span class="tag tag-question">Low</span></td>
+        <td><span class="tag tag-progress">Medium</span></td>
+        <td>Acknowledge in poster: "v1 flags potential fairness concerns qualitatively; v2 would implement disparate impact ratio metrics." Framing it as a design principle is still valuable.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- 10. TIMELINE -->
+<!-- ============================================================ -->
+<div class="section" id="timeline">
+  <div class="section-header">
+    <div class="section-number">10</div>
+    <h2>Timeline</h2>
+  </div>
+
+  <div class="callout callout-red">
+    <strong>Reality check:</strong> We have 4 group projects due in 3 weeks. ML2 and Data Viz land on the same day (Apr 8-9). GRIFFIN doesn't go full sprint until after those are submitted. The schedule below accounts for this.
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Week</th><th>Dates</th><th>GRIFFIN Focus</th><th>Other Projects</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>This week</strong></td>
+        <td>Mar 30 - Apr 2</td>
+        <td>Set up project venv (H2O requires Java JDK). <strong>Scrape W&M Workday postings</strong> via JSON API (~149 PDs, cache locally, CQM orchestrated). Strip labels, begin feature extraction. Quick wins: GitHub repo, kanban board, research paper search.</td>
+        <td>ML2 + Data Viz are priority</td>
+      </tr>
+      <tr>
+        <td><strong>Crunch</strong></td>
+        <td>Apr 3 - 8</td>
+        <td>ML2 + Data Viz final push. GRIFFIN: H2O AutoML training on extracted features (can run overnight). Prompt v2 testing.</td>
+        <td>ML2 presentation + Data Viz presentation (Apr 8-9)</td>
+      </tr>
+      <tr>
+        <td><strong>Sprint</strong></td>
+        <td>Apr 9 - 14</td>
+        <td>100% GRIFFIN. <strong>Assignment 5 + Streamlit app</strong> (same LangChain backend): wire up three-stage architecture, custom tools, memory, streaming, skill.md templates, design report. Wrap in Streamlit UI. Validate 10+ positions. SHAP visualizations. Cloud SQL. Poster design.</td>
+        <td>Done with other courses -- full focus on GRIFFIN</td>
+      </tr>
+      <tr>
+        <td><strong>Present</strong></td>
+        <td>Apr 15 - 17</td>
+        <td>AI poster (Apr 15). Big Data deck (Apr 17). Dry runs before each.</td>
+        <td>--</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-green">
+    <strong>The advantage:</strong> WS1 (DHRM reference data) is locked in. The Workday scrape is a focused, one-time data pull (~149 postings via JSON API, already scoped). After that, it's all building and presenting. Assignment 5 doubles as the architecture PoC, so we get two deliverables from one effort.
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ============================================================ -->
+<!-- FOOTER -->
+<!-- ============================================================ -->
+<div class="footer">
+  GRIFFIN | BUAD 5742 + BUAD 5722 | Spring 2026 | William & Mary<br>
+  This document is a working briefing for team coordination and professor guidance.
+</div>
+
+</body>
+</html>

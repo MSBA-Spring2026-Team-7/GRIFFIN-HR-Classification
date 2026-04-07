@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRIFFIN Project Schedule | Gantt View</title>
+<style>
+  :root {
+    --ai: #17a2b8;
+    --bd: #8e44ad;
+    --shared: #e67e22;
+    --hr: #27ae60;
+    --done: #28a745;
+    --today-line: #dc3545;
+    --weekend: #f8f9fa;
+    --milestone: #d4380d;
+    --panel-w: 420px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fff;
+    color: #333;
+    padding: 16px;
+    font-size: 13px;
+    transition: padding-right 0.3s;
+  }
+  body.panel-open { padding-right: calc(var(--panel-w) + 24px); }
+
+  h1 { text-align: center; font-size: 1.5rem; margin-bottom: 2px; }
+  .subtitle { text-align: center; color: #666; font-size: 0.85rem; margin-bottom: 4px; }
+  .hint { text-align: center; color: #999; font-size: 0.75rem; margin-bottom: 12px; }
+
+  .legend {
+    display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 14px; font-size: 0.78rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-bar { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .gantt-wrapper {
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+  }
+  table.gantt {
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 100%;
+  }
+  table.gantt th, table.gantt td {
+    border: 1px solid #e9ecef;
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  tr.week-row th {
+    background: #343a40; color: #fff; font-size: 0.75rem;
+    font-weight: 600; padding: 4px 0;
+    position: sticky; top: 0; z-index: 3;
+  }
+  tr.day-row th {
+    background: #495057; color: #dee2e6; font-size: 0.72rem;
+    font-weight: 400; padding: 3px 0;
+    min-width: 32px; width: 32px;
+    position: sticky; top: 24px; z-index: 3;
+  }
+  tr.day-row th.weekend { background: #6c757d; }
+  tr.day-row th.today { background: var(--today-line); color: #fff; font-weight: 700; }
+  tr.day-row th.milestone-day { background: var(--milestone); color: #fff; font-weight: 700; }
+
+  .task-label {
+    text-align: left !important;
+    padding: 5px 8px !important;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    background: #fff;
+    position: sticky;
+    left: 0; z-index: 2;
+    min-width: 240px;
+    border-right: 2px solid #adb5bd !important;
+  }
+  tr.section-row .task-label {
+    background: #f1f3f5; font-weight: 700; font-size: 0.76rem;
+    text-transform: uppercase; letter-spacing: 0.5px; color: #495057;
+    padding: 6px 8px !important;
+  }
+  tr.section-row td { background: #f1f3f5; }
+
+  /* Clickable task rows */
+  tr.task-row { cursor: pointer; transition: background 0.15s; }
+  tr.task-row:hover td { background: #f0f7ff; }
+  tr.task-row:hover .task-label { background: #e3f0ff; }
+  tr.task-row.selected td { background: #dbeafe; }
+  tr.task-row.selected .task-label { background: #c7dbf5; font-weight: 600; }
+
+  .tag {
+    display: inline-block; font-size: 0.75rem; padding: 1px 4px;
+    border-radius: 2px; font-weight: 500; margin-left: 4px; vertical-align: middle;
+  }
+  .tag-ai { background: #d1ecf1; color: #0c5460; }
+  .tag-bd { background: #e8daef; color: #4a235a; }
+  .tag-shared { background: #fdebd0; color: #784212; }
+  .tag-hr { background: #d5f5e3; color: #1e8449; }
+
+  .owner-badge {
+    display: inline-block; font-size: 0.68rem; padding: 1px 5px;
+    border-radius: 8px; background: #495057; color: #fff;
+    margin-left: 6px; vertical-align: middle; font-weight: 600;
+    letter-spacing: 0.3px; max-width: 80px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .owner-input {
+    width: 100%; padding: 6px 10px; border: 2px solid #dee2e6;
+    border-radius: 6px; font-size: 0.85rem; font-family: Arial, sans-serif;
+    transition: border-color 0.2s;
+  }
+  .owner-input:focus { border-color: #17a2b8; outline: none; }
+  .owner-save-hint {
+    font-size: 0.72rem; color: #6c757d; margin-top: 4px;
+    font-style: italic;
+  }
+
+  td.cell { padding: 0; height: 28px; position: relative; }
+  td.cell.weekend { background: var(--weekend); }
+  td.cell.today-col { background: #fff5f5; }
+
+  .bar {
+    position: absolute; top: 4px; bottom: 4px; left: 1px; right: 1px;
+    border-radius: 3px; opacity: 0.85;
+  }
+  .bar-ai { background: var(--ai); }
+  .bar-bd { background: var(--bd); }
+  .bar-shared { background: var(--shared); }
+  .bar-hr { background: var(--hr); }
+  .bar-done { background: var(--done); opacity: 0.5; }
+  .bar-start { border-radius: 3px 0 0 3px; right: 0; }
+  .bar-mid { border-radius: 0; left: 0; right: 0; }
+  .bar-end { border-radius: 0 3px 3px 0; left: 0; }
+  .bar-single { border-radius: 3px; }
+
+  .milestone-marker {
+    position: absolute; top: 50%; left: 50%;
+    width: 12px; height: 12px; background: var(--milestone);
+    transform: translate(-50%, -50%) rotate(45deg); border-radius: 2px;
+  }
+  td.cell.today-col::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 50%;
+    width: 2px; background: var(--today-line); z-index: 1; opacity: 0.6;
+  }
+  tr.checkpoint-row .task-label { font-weight: 700; color: var(--milestone); font-size: 0.8rem; }
+
+  /* ============ DETAIL PANEL ============ */
+  #detail-panel {
+    position: fixed;
+    top: 0; right: -460px;
+    width: var(--panel-w);
+    height: 100vh;
+    background: #fff;
+    border-left: 3px solid #dee2e6;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.12);
+    z-index: 100;
+    overflow-y: auto;
+    transition: right 0.3s ease;
+    padding: 0;
+  }
+  #detail-panel.open { right: 0; }
+
+  .panel-header {
+    position: sticky; top: 0; z-index: 2;
+    background: #343a40; color: #fff;
+    padding: 14px 16px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .panel-title { font-size: 1rem; font-weight: 700; line-height: 1.3; flex: 1; }
+  .panel-close {
+    background: none; border: none; color: #adb5bd; font-size: 1.4rem;
+    cursor: pointer; padding: 0 0 0 12px; line-height: 1;
+  }
+  .panel-close:hover { color: #fff; }
+
+  .panel-body { padding: 16px; }
+
+  .panel-meta {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .meta-chip {
+    font-size: 0.72rem; padding: 3px 8px; border-radius: 4px;
+    font-weight: 500;
+  }
+  .meta-dates { background: #f1f3f5; color: #495057; }
+  .meta-status-done { background: #d4edda; color: #155724; }
+  .meta-status-todo { background: #f8d7da; color: #721c24; }
+
+  .panel-section {
+    margin-bottom: 16px;
+  }
+  .panel-section-title {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: #868e96; margin-bottom: 6px;
+    padding-bottom: 4px; border-bottom: 1px solid #e9ecef;
+  }
+  .panel-section p, .panel-section li {
+    font-size: 0.82rem; line-height: 1.55; color: #495057;
+  }
+  .panel-section ul, .panel-section ol {
+    padding-left: 18px; margin: 0;
+  }
+  .panel-section li { margin-bottom: 4px; }
+  .panel-section li code {
+    background: #f1f3f5; padding: 1px 4px; border-radius: 3px;
+    font-size: 0.78rem; color: #d6336c;
+  }
+
+  .dep-tag {
+    display: inline-block; font-size: 0.78rem; padding: 2px 6px;
+    border-radius: 3px; background: #fff3cd; color: #856404;
+    margin-right: 4px; margin-bottom: 4px;
+  }
+  .rubric-tag {
+    display: inline-block; font-size: 0.78rem; padding: 2px 6px;
+    border-radius: 3px; background: #e8daef; color: #4a235a;
+    margin-right: 4px; margin-bottom: 4px;
+  }
+
+  .footer {
+    text-align: center; margin-top: 14px; font-size: 0.72rem; color: #aaa;
+  }
+
+  @media print {
+    body { padding: 0 !important; padding-right: 0 !important; font-size: 11px; }
+    .gantt-wrapper { border: none; overflow: visible; }
+    td.cell { height: 22px; }
+    .task-label { min-width: 180px; }
+    #detail-panel { display: none; }
+  }
+  @media (max-width: 700px) {
+    :root { --panel-w: 100vw; }
+    body.panel-open { padding-right: 0; }
+  }
+</style>
+</head>
+<body>
+
+<h1>GRIFFIN Project Schedule</h1>
+<p class="subtitle">Full project timeline: Feb 24 - April 18, 2026 | Scroll right for upcoming work</p>
+<p class="hint">Click any task row to see details, steps, and acceptance criteria.</p>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-bar" style="background:var(--done);opacity:0.5"></span> Done</div>
+  <div class="legend-item"><span class="legend-bar" style="background:var(--ai)"></span> AI Course</div>
+  <div class="legend-item"><span class="legend-bar" style="background:var(--bd)"></span> Big Data</div>
+  <div class="legend-item"><span class="legend-bar" style="background:var(--shared)"></span> Shared</div>
+  <div class="legend-item"><span class="legend-bar" style="background:var(--hr)"></span> HR Handoff</div>
+  <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;background:var(--milestone);transform:rotate(45deg);border-radius:2px"></span> Milestone</div>
+  <div class="legend-item"><span style="display:inline-block;width:2px;height:14px;background:var(--today-line)"></span> Today</div>
+  <div class="legend-item"><span class="owner-badge" style="font-size:0.65rem">Name</span> Owner</div>
+  <button id="export-owners-btn" style="margin-left:auto;padding:4px 12px;border:1px solid #adb5bd;border-radius:4px;background:#fff;cursor:pointer;font-size:0.75rem;font-family:Arial,sans-serif" title="Copy all task assignments to clipboard">Export Owners</button>
+</div>
+
+<div class="gantt-wrapper">
+<table class="gantt" id="gantt"></table>
+</div>
+
+<!-- Detail Panel -->
+<div id="detail-panel">
+  <div class="panel-header">
+    <div class="panel-title" id="panel-title"></div>
+    <button class="panel-close" id="panel-close" title="Close">&times;</button>
+  </div>
+  <div class="panel-body" id="panel-body"></div>
+</div>
+
+<div class="footer">
+  GRIFFIN | BUAD 5742 + BUAD 5722 | Spring 2026<br>
+  Click a task for details. Scroll horizontally for full timeline. Print to PDF for sharing.
+</div>
+
+<script>
+// ============================================================
+// TASK DATA WITH DETAILS
+// ============================================================
+
+const startDate = new Date(2026, 1, 23); // Feb 23 -- show full project history
+const endDate   = new Date(2026, 3, 18);
+
+const milestones = {
+  '2026-04-15': 'AI POSTER (April 15)',
+  '2026-04-17': 'BIG DATA DECK (April 17)',
+};
+
+// Each task: { label, tags, color, start, end, done, detail }
+// detail: { summary, steps[], criteria[], deps[], rubric, tips }
+
+const sections = [
+  {
+    name: 'Completed (Planning & Architecture)',
+    tasks: [
+      {
+        label: 'Project spec document (v1-v3)', tags: ['Shared'], color: 'done',
+        start: '2026-02-24', end: '2026-03-07', done: true, owner: '',
+        detail: {
+          summary: 'Wrote the full project specification: problem statement, 4-workstream architecture, schema design (9 tables), validated example (Assistant Controller -> Financial Services Manager III -> Band 7 -> S18), and deliverables checklist for both courses + HR.',
+          steps: [
+            'Drafted v1 with problem statement and scope after client meeting',
+            'v2 added the 3-layer architecture diagram and 4-workstream plan',
+            'v3 finalized the database schema, blend logic, and acceptance criteria',
+            'Reviewed against both course rubrics to ensure coverage'
+          ],
+          criteria: ['Problem statement defined', 'Architecture documented', 'Schema designed', 'Validated example included', 'Both rubrics mapped'],
+          deps: [],
+          rubric: 'Shared: foundational document for both courses',
+          tips: 'The project spec is the single source of truth. When in doubt about requirements, refer back to v3.'
+        }
+      },
+      {
+        label: 'Database schema design (9 tables)', tags: ['Shared'], color: 'done',
+        start: '2026-03-01', end: '2026-03-07', done: true, owner: '',
+        detail: {
+          summary: 'Designed the full SQL schema: 6 reference tables (career_groups, roles, soc_codes, historical_titles, dhrm_pay_bands, wm_pay_grades) + crosswalk + 2 classification output tables (classification_results, classification_explanations).',
+          steps: [
+            'Mapped DHRM page structure to relational tables',
+            'Designed foreign key relationships: career_groups -> roles -> soc_codes',
+            'Added data_source column for public vs. proprietary data separation',
+            'Designed output tables for LLM classification results + explanations',
+            'Reviewed with project spec to ensure all fields captured'
+          ],
+          criteria: ['9 tables designed', 'FK relationships mapped', 'data_source tagging included', 'Output tables for classification pipeline'],
+          deps: ['Project spec v2+'],
+          rubric: 'Big Data: schema design. HR Handoff: proprietary data support.',
+          tips: 'The schema has 6 reference + 1 crosswalk + 2 output tables. The reference tables are filled by this notebook. The output tables are filled by the Streamlit app later.'
+        }
+      },
+      {
+        label: 'Proof of Concept prototype', tags: ['AI'], color: 'done',
+        start: '2026-03-03', end: '2026-03-09', done: true, owner: '',
+        detail: {
+          summary: 'Early prototype testing classification logic with a few career groups. Confirmed the approach works before building the full pipeline.',
+          steps: [
+            'Manually parsed 3-4 career group pages to understand HTML structure',
+            'Tested BeautifulSoup extraction patterns on different page layouts',
+            'Drafted an initial classification prompt and tested with LLM',
+            'Confirmed: "paste PD + reference data -> get classification" workflow is viable'
+          ],
+          criteria: ['Extraction patterns validated', 'LLM classification concept tested', 'Approach confirmed viable'],
+          deps: [],
+          rubric: 'AI Course: early prototyping and iterative development',
+          tips: 'The PoC revealed that PDF pages have 3 different formats, which became the hardest parsing challenge later.'
+        }
+      },
+    ]
+  },
+  {
+    name: 'Completed (WS1: Data Collection)',
+    tasks: [
+      {
+        label: 'Scrape 56 DHRM pages', tags: ['BD'], color: 'done',
+        start: '2026-03-10', end: '2026-03-15', done: true, owner: '',
+        detail: {
+          summary: 'Fetched all 56 DHRM career group pages (50 HTML + 6 PDF) and cached raw responses locally in raw_pages/ for offline re-parsing.',
+          steps: [
+            'Used <code>requests</code> library to fetch each URL from the master list',
+            'Added 1-2 second delays between requests (ethical scraping)',
+            'Saved raw HTML/PDF to <code>raw_pages/</code> with filename matching career group code',
+            'Verified all 56 files present and non-empty'
+          ],
+          criteria: ['50 HTML files cached', '6 PDF files cached', 'Rate limiting enforced', 'All files in raw_pages/'],
+          deps: [],
+          rubric: 'Big Data: Data Acquisition, Ethical Scraping',
+          tips: 'Raw pages are cached so parsing can be iterated without re-scraping. If DHRM updates a page, just re-fetch that one file.'
+        }
+      },
+      {
+        label: 'Parse HTML (50 groups)', tags: ['BD'], color: 'done',
+        start: '2026-03-12', end: '2026-03-18', done: true, owner: '',
+        detail: {
+          summary: 'Parsed 50 HTML career group pages into structured DataFrames using BeautifulSoup + regex. Extracted career group metadata, roles with all 4 compensable factors, SOC codes, and historical titles.',
+          steps: [
+            'BeautifulSoup extracts tables and text blocks from each HTML page',
+            'Regex captures role codes, role titles, SOC codes, historical titles',
+            'Compensable factors (complexity, decision-making, results, accountability) parsed from structured tables',
+            'All data mapped to schema: career_groups, roles, soc_codes, historical_titles'
+          ],
+          criteria: ['50 HTML groups parsed', 'All 4 compensable factors extracted', 'SOC codes captured', 'Historical titles captured'],
+          deps: ['Scrape 56 DHRM pages'],
+          rubric: 'Big Data: Technical Depth (BeautifulSoup, regex)',
+          tips: 'HTML pages follow a consistent layout. The real challenge was the PDF groups with 3 different format variants.'
+        }
+      },
+      {
+        label: 'Parse PDF (6 groups, 3 variants)', tags: ['BD'], color: 'done',
+        start: '2026-03-16', end: '2026-03-24', done: true, owner: '',
+        detail: {
+          summary: 'Parsed 6 PDF career group pages using pdfplumber. Required 3 separate handlers for format variants: embedded layout (13 groups), split factor tables (8+ groups), and transitional format (39010).',
+          steps: [
+            'Diagnostic analysis identified 3 root causes of parsing failures',
+            'Embedded layout: factors inside header table as extra rows -- special row detection',
+            'Split factor tables: factors split across 2-3 separate table elements -- table merging logic',
+            'Transitional format (39010): no Code:/SOC: headers -- fallback heuristic parser',
+            'CQM quality control process with formal diagnostic report and acceptance criteria'
+          ],
+          criteria: ['6 PDF groups parsed', '24 roles with all factors', '3 format variants handled', 'CQM acceptance criteria met'],
+          deps: ['Scrape 56 DHRM pages'],
+          rubric: 'Big Data: Technical Depth (pdfplumber, edge case handling)',
+          tips: 'This was the hardest part of WS1. The CQM diagnostic report at cqm-griffin-parser/qc-support/diagnostic-report.md has the full root cause analysis.'
+        }
+      },
+      {
+        label: 'Data validation (56 groups, 294 roles)', tags: ['BD'], color: 'done',
+        start: '2026-03-22', end: '2026-03-24', done: true, owner: '',
+        detail: {
+          summary: 'Verified 100% coverage: all 56 career groups, 294 roles, 666 SOC codes, 1,469 historical titles. Cross-checked against DHRM source pages.',
+          steps: [
+            'Count verification: 56 career groups (50 HTML + 6 PDF)',
+            'Role count check: 294 roles across all groups',
+            'Factor completeness: all 4 compensable factors present for every role',
+            'SOC code count: 666 unique SOC mappings',
+            'Historical title count: 1,469 titles',
+            'Spot-checked 5+ groups against original DHRM pages'
+          ],
+          criteria: ['56 career groups', '294 roles', '4/4 factors per role', '666 SOC codes', '1,469 historical titles'],
+          deps: ['Parse HTML', 'Parse PDF'],
+          rubric: 'Big Data: Data Quality. Shared: foundation must be accurate.',
+          tips: 'Validation is what transforms a scraping exercise into a reliable data product. Without it, downstream classification would be unreliable.'
+        }
+      },
+      {
+        label: 'FY26 salary + W&M grades', tags: ['Shared'], color: 'done',
+        start: '2026-03-23', end: '2026-03-25', done: true, owner: '',
+        detail: {
+          summary: 'Parsed the FY26 DHRM salary structure PDF (9 pay bands) and built the W&M salary table (46 pay grades: S01-S23 + H01-H23) plus the DHRM-to-W&M crosswalk.',
+          steps: [
+            'DHRM PDF parsed with pdfplumber for 9 pay bands with min/max salaries',
+            'W&M grades built from university website data (salaried + hourly)',
+            'Crosswalk maps each DHRM band to best-fit W&M grade by midpoint proximity',
+            'Validated: Band 7 -> S18 matches the Assistant Controller example'
+          ],
+          criteria: ['9 DHRM pay bands', '46 W&M grades', '9-row crosswalk', 'Band 7->S18 validated'],
+          deps: [],
+          rubric: 'Shared: both courses use this data',
+          tips: 'The crosswalk is the bridge between state classification and university pay. HR needs this to translate DHRM recommendations into W&M salary ranges.'
+        }
+      },
+      {
+        label: 'DB load + Excel export', tags: ['BD', 'HR'], color: 'done',
+        start: '2026-03-25', end: '2026-03-26', done: true, owner: '',
+        detail: {
+          summary: 'Loaded all 7 DataFrames into SQLite via sqlalchemy and exported 7 Excel files to hr_handoff/ for the client.',
+          steps: [
+            'Connected to SQLite via sqlalchemy <code>create_engine</code>',
+            'Used <code>df.to_sql()</code> for each table with <code>if_exists="replace"</code>',
+            'Ran verification queries: record counts, sample rows, cross-table joins',
+            'Exported each table to .xlsx using <code>df.to_excel()</code> in hr_handoff/'
+          ],
+          criteria: ['7 tables loaded', 'Verification queries passing', '7 .xlsx files in hr_handoff/'],
+          deps: ['Parse HTML + PDF', 'FY26 salary + W&M grades'],
+          rubric: 'Big Data: sqlalchemy + database. HR Handoff: Excel files.',
+          tips: 'SQLite is a placeholder. The Cloud SQL migration (task #7) replaces this with MySQL on GCP.'
+        }
+      },
+      {
+        label: 'Classification prompt v1', tags: ['AI'], color: 'done',
+        start: '2026-03-20', end: '2026-03-24', done: true, owner: '',
+        detail: {
+          summary: 'Drafted the first version of the classification prompt template. Includes duty-to-factor mapping, blend logic (primary/secondary at 30% threshold), and explanation generation.',
+          steps: [
+            'Defined prompt input format: position description + reference data tables',
+            'Structured output: duty mapping -> career group -> role -> pay band -> explanation',
+            'Implemented blend logic: secondary duties < 30% flagged as "incidental"',
+            'Tested conceptually against Assistant Controller example',
+            'Saved as classification_prompt_template_v1.md'
+          ],
+          criteria: ['Prompt template complete', 'Duty mapping included', 'Blend threshold configurable', 'Output structure defined'],
+          deps: ['Reference data tables', 'Project spec'],
+          rubric: 'Shared: core classification logic for Streamlit + HR prompts',
+          tips: 'v1 is a working draft. v2 refines based on actual test results from running real position descriptions through the prompt.'
+        }
+      },
+    ]
+  },
+  {
+    name: 'Critical Path: Data + Environment (Mar 30 - Apr 8)',
+    tasks: [
+      {
+        label: 'Environment setup: venv + Java JDK', tags: ['Shared'], color: 'shared',
+        start: '2026-03-30', end: '2026-03-31', done: false, owner: '',
+        detail: {
+          summary: 'Create project venv (.venv/) and install all dependencies. Java JDK 11+ required for H2O AutoML.',
+          steps: [
+            'Create venv: <code>py -m venv .venv</code>',
+            'Activate: <code>.venv\\Scripts\\activate</code>',
+            'Install Java JDK 11+ (Adoptium/Temurin)',
+            'Set JAVA_HOME environment variable',
+            'pip install h2o streamlit plotly seaborn matplotlib shap google-generativeai',
+            'pip install requests beautifulsoup4 pdfplumber pandas sqlalchemy pymysql openpyxl lxml',
+            'Verify: <code>py -c "import h2o; h2o.init()"</code>'
+          ],
+          criteria: ['Venv created', 'All packages installed', 'Java JDK confirmed', 'h2o.init() runs'],
+          deps: [],
+          rubric: 'Shared: required for ML training and Streamlit app',
+          tips: 'H2O requires Java. If h2o.init() fails, check JAVA_HOME points to a JDK 11+ installation.'
+        }
+      },
+      {
+        label: 'Workday scrape (CQM orchestrated)', tags: ['BD'], color: 'bd',
+        start: '2026-03-31', end: '2026-04-02', done: false, owner: '',
+        detail: {
+          summary: 'Scrape ~149 W&M Workday postings via JSON API. Cache all raw JSON to raw_workday/. Filter faculty. Rate limit 1-2s between requests.',
+          steps: [
+            'Check robots.txt (already confirmed: /WM/ is allowed)',
+            'Paginate list endpoint: POST /wday/cxs/williammary/WM/jobs (20/page, 8 calls)',
+            'Filter out faculty positions by job family in bulletFields',
+            'Fetch each detail: GET /wday/cxs/williammary/WM/job/{path} with 1-2s delay',
+            'Save raw JSON to raw_workday/{externalPath}.json',
+            'Parse HTML descriptions via regex/BeautifulSoup',
+            'Extract labels: compensation grade, job profile, job family',
+            'Log faculty exclusion count'
+          ],
+          criteria: ['All non-faculty postings cached', 'Labels extracted', 'Rate limiting enforced', 'Faculty count logged', 'Raw JSON in raw_workday/'],
+          deps: ['Environment setup'],
+          rubric: 'Big Data: Data Acquisition, Ethical Scraping',
+          tips: 'Be gentle with the Workday API -- it is free/public and can ban us. Pull once, cache, parse from cache. Never re-run the scraper.'
+        }
+      },
+      {
+        label: 'Label stripping + censored PDs', tags: ['Shared'], color: 'shared',
+        start: '2026-04-02', end: '2026-04-03', done: false, owner: '',
+        detail: {
+          summary: 'Strip classification fields from PD text to create censored training input. Keep duties and qualifications. Spot-check 10+ for label leakage.',
+          steps: [
+            'Strip: Job Profile line, Compensation Grade, salary/pay mentions, Job Family header, Job Req ID',
+            'Keep: duty descriptions with percentages, qualifications, department, supervision relationships',
+            'Extract as labels: compensation grade (S15, H07), job profile code (JP0506), job family, exempt status',
+            'Create two DataFrames: raw (with labels) and censored (labels stripped)',
+            'Spot-check 10+ censored PDs: does it read like a real PD with no answer baked in?',
+            'Export to CSV for ML training'
+          ],
+          criteria: ['Censored PDs have no classification info', '10+ spot-checks pass', 'Labels extracted as ground truth', 'Two DataFrames created'],
+          deps: ['Workday scrape'],
+          rubric: 'Shared: prevents data leakage -- critical for valid ML model',
+          tips: 'This is THE critical design point. If labels leak, the ML model learns to read the answer, not the duties. The model would be useless on real unclassified PDs.'
+        }
+      },
+      {
+        label: 'Feature engineering on censored PDs', tags: ['BD'], color: 'bd',
+        start: '2026-04-03', end: '2026-04-06', done: false, owner: '',
+        detail: {
+          summary: 'Extract structured signals from censored PDs: budget, supervision, domain, education, decision scope. Build tabular DataFrame for H2O.',
+          steps: [
+            'Define feature set: budget mentions, supervision count, domain keywords, education level, decision scope, external contact level',
+            'Extract via regex and/or LLM API calls',
+            'Build pandas DataFrame with one row per posting, features as columns, label as target',
+            'Handle missing data: "not mentioned" != "absent"',
+            'Exploratory analysis: feature distributions, class balance'
+          ],
+          criteria: ['Tabular DataFrame built', 'All features populated', 'Missing data handled', 'Class balance checked'],
+          deps: ['Label stripping'],
+          rubric: 'Big Data: Feature Engineering, GenAI API calls',
+          tips: 'With ~149 rows, raw text classification needs too much data. Structured features turn this into a tabular problem GBM handles well.'
+        }
+      },
+      {
+        label: 'H2O AutoML training', tags: ['BD'], color: 'bd',
+        start: '2026-04-06', end: '2026-04-08', done: false, owner: '',
+        detail: {
+          summary: 'Train H2O AutoML on tabular features. Predict occupational family (7 classes). Generate leaderboard, variable importance, SHAP, PDP.',
+          steps: [
+            'Initialize H2O: <code>h2o.init()</code>',
+            'Convert DataFrame to H2O frame',
+            'Set target = occupational family (7 classes)',
+            'Run AutoML with stratified CV',
+            'Review leaderboard: GBM, RF, XGBoost, stacked ensembles',
+            'Generate: variable importance plot, SHAP summary, PDP for top features',
+            'Evaluate: macro F1, top-3 accuracy, confusion matrix',
+            'Save best model for Streamlit integration'
+          ],
+          criteria: ['AutoML runs', 'Leaderboard produced', 'SHAP + PDP generated', 'Evaluation metrics documented'],
+          deps: ['Feature engineering', 'Environment setup (Java)'],
+          rubric: 'Big Data: H2O AutoML, Variable Importance, SHAP, PDP (Week 11 concepts)',
+          tips: 'AutoML tries many models automatically. The leaderboard IS the demonstration of course concepts. Let it run for 10-20 minutes for a good leaderboard.'
+        }
+      },
+    ]
+  },
+  {
+    name: 'Assignment 5 + Streamlit (Apr 9 - Apr 14)',
+    tasks: [
+      {
+        label: 'LangChain multi-agent PoC', tags: ['AI'], color: 'ai',
+        start: '2026-04-09', end: '2026-04-11', done: false, owner: '',
+        detail: {
+          summary: 'Build the three-stage architecture as a LangChain multi-agent system. All 8 Assignment 5 components. Validates design before production Streamlit.',
+          steps: [
+            'Component 1: init_chat_model() with temperature experiments',
+            'Component 2: ML Shortlist Agent + LLM Classifier Agent with distinct system prompts',
+            'Component 3: Multi-turn conversation (HR submits PD, gets classification, asks follow-up)',
+            'Component 4: Streaming output on classification reasoning',
+            'Component 5: @tool query_dhrm_database() + @tool extract_features_from_pd()',
+            'Component 6: External API tool (Tavily/BLS salary data)',
+            'Component 7: InMemorySaver checkpointer for session memory',
+            'Component 8: HR Assistant Orchestrator delegates to sub-agents'
+          ],
+          criteria: ['All 8 components working', 'Real GRIFFIN data used', 'Classification produces correct output', 'Clearly labeled sections in script'],
+          deps: ['Workday scrape', 'H2O model trained'],
+          rubric: 'AI Course: Assignment 5 -- all 8 components required',
+          tips: 'This is the proof-of-concept, not production. Focus on demonstrating each component works. The production Streamlit app strips LangChain and uses direct API calls.'
+        }
+      },
+      {
+        label: 'skill.md + template files', tags: ['AI'], color: 'ai',
+        start: '2026-04-10', end: '2026-04-11', done: false, owner: '',
+        detail: {
+          summary: 'Evolve classification prompt v1 into structured skill.md format with typed parameters and templates for agent tool use.',
+          steps: [
+            'Convert classification prompt to skill.md frontmatter format',
+            'Add typed parameters (position_description, blend_threshold, etc.)',
+            'Create template files for each agent role',
+            'Zip for Gradescope submission'
+          ],
+          criteria: ['skill.md files created', 'Templates match agent roles', 'Zip file ready'],
+          deps: ['LangChain PoC'],
+          rubric: 'AI Course: Assignment 5 deliverable',
+          tips: 'The skill.md files should encode GRIFFIN classification logic in a reusable format.'
+        }
+      },
+      {
+        label: 'Assignment 5 design rationale (1 page)', tags: ['AI'], color: 'ai',
+        start: '2026-04-11', end: '2026-04-11', done: false, owner: '',
+        detail: {
+          summary: 'One-page markdown report: system architecture, which agent does what, design decisions, LangChain as production framework.',
+          steps: [
+            'Describe the three-stage architecture',
+            'Explain each agent role and its system prompt',
+            'Discuss design decisions: why LangChain first, then agnostic',
+            'Mention the MVP vs. full scope distinction'
+          ],
+          criteria: ['One page', 'Architecture explained', 'Design rationale clear'],
+          deps: ['LangChain PoC'],
+          rubric: 'AI Course: Assignment 5 deliverable',
+          tips: 'Keep it concise. The report should complement the code, not repeat it.'
+        }
+      },
+    ]
+  },
+  {
+    name: 'Week 1: Foundation (Mar 27 - Apr 2)',
+    tasks: [
+      {
+        label: 'URL refactoring in notebook', tags: ['BD'], color: 'bd',
+        start: '2026-03-27', end: '2026-03-28', done: false, owner: '',
+        detail: {
+          summary: 'Refactor the HTML_SOURCES and PDF_SOURCES dictionaries to use a static base URL + dynamic path dictionary with f-strings. Reduces duplication and makes the URL pattern obvious.',
+          steps: [
+            'Define <code>HTML_BASE = "https://web1.dhrm.virginia.gov/itech/DHRMWebAssets/careergroups/"</code>',
+            'Create a dict mapping career group codes to relative paths: <code>{"19010": "admin/AdminOfficeSupport19010.htm", ...}</code>',
+            'Construct full URLs with <code>f"{HTML_BASE}{path}"</code>',
+            'Do the same for PDF sources with their respective base URLs',
+            'Verify all URLs still resolve correctly (spot-check 3-4)'
+          ],
+          criteria: ['No full URLs hardcoded in source dictionaries', 'Base URL defined once', 'All 56 URLs still resolve', 'Notebook runs end-to-end'],
+          deps: [],
+          rubric: 'Big Data: Code quality and documentation',
+          tips: 'This is a cosmetic improvement. The data is already scraped and cached. This just makes the notebook cleaner for grading.'
+        }
+      },
+      {
+        label: 'Notebook gap analysis vs. rubrics', tags: ['BD', 'AI'], color: 'shared',
+        start: '2026-03-27', end: '2026-03-29', done: false, owner: '',
+        detail: {
+          summary: 'Review the notebook against both course rubrics and the project spec to identify any gaps before the final push.',
+          steps: [
+            'Read Big Data rubric: Problem Relevance, Technical Depth, Code Quality, Visualization, Ethics',
+            'Read AI rubric: Code demo, Website demo, Poster, GitHub repo, Kanban, Research paper, References',
+            'Compare each criterion against current notebook state',
+            'List gaps as new tasks or modifications to existing tasks',
+            'Prioritize by rubric weight'
+          ],
+          criteria: ['Gap list produced', 'Each gap mapped to a rubric criterion', 'Priority assigned'],
+          deps: [],
+          rubric: 'Meta-task: ensures nothing falls through the cracks',
+          tips: 'The rubric files are in Course References/. The Big Data rubric is in the .docx, the AI rubric is in the .png image.'
+        }
+      },
+      {
+        label: 'Deploy to Google Cloud SQL (#7)', tags: ['BD'], color: 'bd',
+        start: '2026-03-28', end: '2026-04-01', done: false, owner: '',
+        detail: {
+          summary: 'Migrate from SQLite to Google Cloud SQL (MySQL). This is critical for the Big Data rubric -- "appropriate use of cloud services" is a key criterion.',
+          steps: [
+            'Go to GCP Console > SQL > Create Instance > MySQL 8.0',
+            'Choose a small instance (db-f1-micro is fine for this data volume)',
+            'Create database: <code>CREATE DATABASE griffin_hr;</code>',
+            'Create a service account or use your GCP credentials',
+            'Update notebook connection: <code>create_engine("mysql+pymysql://user:pass@IP/griffin_hr")</code>',
+            'Re-run the database load cells against Cloud SQL',
+            'Run verification queries to confirm data integrity',
+            'Mask credentials in notebook (use <code>os.environ</code> or a config cell)',
+            'Take screenshots of GCP Console for the slide deck'
+          ],
+          criteria: ['Cloud SQL instance running', 'All 7 tables loaded', 'Verification queries pass', 'Credentials masked in notebook', 'GCP screenshots saved'],
+          deps: ['DB load + Excel export (done)'],
+          rubric: 'Big Data: Technical Depth -- cloud services, GCP tools covered in class',
+          tips: 'Use the free tier or existing GCP credits from the Big Data course labs. The data is tiny (< 1 MB total) so costs are negligible. Whitelist your IP in Cloud SQL networking settings.'
+        }
+      },
+      {
+        label: 'GitHub repo + README draft (#1)', tags: ['AI'], color: 'ai',
+        start: '2026-03-28', end: '2026-04-02', done: false, owner: '',
+        detail: {
+          summary: 'Create the GitHub repository and draft the README. The rubric grades both "repo is organized" (7%) and "references cited properly" (1%).',
+          steps: [
+            'Create repo: <code>gh repo create GRIFFIN --public --description "W&M HR Classification & Pay Matching Tool"</code>',
+            'Push existing code (notebook, data files, docs)',
+            'Write README sections: Project Scope, Architecture (3-layer diagram), Project Details',
+            'Add Author List with links to each member\'s GitHub profile',
+            'Each team member creates a GitHub profile README with bio',
+            'Add "What\'s Next?" section with future development ideas',
+            'Add Responsible AI section (can be placeholder, finalize later)',
+            'Add Reference List (at least one research paper, add as found)',
+            'Do NOT name the client (W&M HR) without permission'
+          ],
+          criteria: ['Repo created and public', 'README has all required sections', 'Author bios with GitHub links', 'Architecture diagram included', 'Reference list started'],
+          deps: [],
+          rubric: 'AI Course: "Github repo is organized and covers everything required" (7%)',
+          tips: 'Use the project spec (wm-hr-classification-project-prompt-v3.md) as source material for the README. The three-layer architecture diagram is key -- make it visual. Tools: Mermaid diagrams render natively on GitHub.'
+        }
+      },
+      {
+        label: 'GitHub Projects board setup (#2)', tags: ['AI'], color: 'ai',
+        start: '2026-03-28', end: '2026-03-29', done: false, owner: '',
+        detail: {
+          summary: 'Create a GitHub Projects board and populate it with all tasks. The rubric grades "kanban board is visually organized" (7%).',
+          steps: [
+            'Install GitHub CLI if needed: <code>gh auth login</code>',
+            'Run <code>bash docs/github-issues-setup.sh</code> to create all issues + labels',
+            'Go to repo > Projects tab > New Project > Board view',
+            'Add the repo as a data source',
+            'Create columns: Done, In Progress, To Do',
+            'Drag closed issues to Done, open issues to To Do',
+            'Add custom fields if desired: Priority, Assignee, Course'
+          ],
+          criteria: ['Project board created', 'All issues visible on board', 'Done/In Progress/To Do columns', 'Board shows active use (not just last-minute setup)'],
+          deps: ['GitHub repo created'],
+          rubric: 'AI Course: "Github project kanban board is visually organized" (7%)',
+          tips: 'The setup script creates everything in one command. After that, the team just drags cards as they work. Make sure to use the board actively throughout the project -- judges can see creation dates.'
+        }
+      },
+      {
+        label: 'Research paper search (#5)', tags: ['AI'], color: 'ai',
+        start: '2026-03-29', end: '2026-04-02', done: false, owner: '',
+        detail: {
+          summary: 'Find at least one high-quality academic research paper (< 3 years old) relevant to the project. Must be discussed verbally and appear on the poster.',
+          steps: [
+            'Search Google Scholar, IEEE Xplore, ACM DL, or arXiv',
+            'Keywords: "LLM job classification", "agentic AI enterprise", "automated position classification", "NLP human resources", "large language model structured extraction"',
+            'Filter to 2024-2026 publications',
+            'Read abstract and skim methodology -- must be a real research paper, not a blog or documentation',
+            'Write a 2-3 sentence summary of how it relates to the project',
+            'Add citation to README reference list',
+            'Prepare talking points for poster presentation'
+          ],
+          criteria: ['Paper found and cited', 'Published 2024 or later', 'From a reputable source (journal, conference, or established preprint)', 'Summary written', 'Added to README'],
+          deps: [],
+          rubric: 'AI Course: "Research paper is well chosen and well discussed verbally and on the poster" (7%)',
+          tips: 'Look for papers on LLM-based information extraction from structured documents, or agentic AI systems for enterprise workflows. A paper on job matching with NLP/LLMs would be ideal. ArXiv has the most recent work.'
+        }
+      },
+      {
+        label: 'Streamlit app skeleton (#3)', tags: ['AI'], color: 'ai',
+        start: '2026-03-29', end: '2026-04-02', done: false, owner: '',
+        detail: {
+          summary: 'Build the basic Streamlit app structure: text input for position descriptions, placeholder for LLM output, and reference data display.',
+          steps: [
+            'Create <code>app.py</code> with Streamlit imports',
+            'Add a text area for pasting position descriptions',
+            'Load reference data from Excel files (hr_handoff/*.xlsx) or SQLite',
+            'Add a sidebar showing career group browser / search',
+            'Create output sections: Classification, Pay Recommendation, Explanation',
+            'Add a "Classify" button (no LLM yet, just structure)',
+            'Test locally: <code>streamlit run app.py</code>'
+          ],
+          criteria: ['App runs locally', 'Text input works', 'Reference data loads', 'Output sections visible', 'Basic layout is clean and professional'],
+          deps: ['Excel files in hr_handoff/ (done)'],
+          rubric: 'AI Course: "Website demo: Creative and thoughtful use of vibe coding" (7%)',
+          tips: 'Keep it simple. Streamlit makes it easy to build a clean UI. Focus on the user flow first, then add the LLM integration in Week 2. Use st.tabs() for organizing Classification / Pay / Explanation sections.'
+        }
+      },
+      {
+        label: 'Refine classification prompt v2 (#12)', tags: ['Shared'], color: 'shared',
+        start: '2026-03-28', end: '2026-04-01', done: false, owner: '',
+        detail: {
+          summary: 'Iterate the v1 classification prompt template. Test against the Assistant Controller example. Ensure it produces the correct output structure.',
+          steps: [
+            'Open <code>classification_prompt_template_v1.md</code>',
+            'Test with the Assistant Controller position description',
+            'Verify output: Financial Services Manager III (19036), Band 7, S18',
+            'Check blend logic: secondary < 30% should be "incidental"',
+            'Verify explanation narrative reads like an HR professional wrote it',
+            'Test with a second LLM (Gemini or Copilot) to confirm portability',
+            'Adjust prompt wording based on failure modes',
+            'Save as v2'
+          ],
+          criteria: ['Correct classification for Assistant Controller', 'Blend threshold works at 30%', 'Explanation is professional quality', 'Works with 2+ LLMs'],
+          deps: ['Reference data (done)', 'Prompt v1 (done)'],
+          rubric: 'Shared: Core classification logic for both courses + HR handoff',
+          tips: 'The validated example in the project spec has exact expected outputs. Use that as the acceptance test. The prompt must reference "the attached reference data" generically since HR will use it with their own LLM.'
+        }
+      },
+    ]
+  },
+  {
+    name: 'Week 2: Build (Apr 3 - Apr 9)',
+    tasks: [
+      {
+        label: 'Streamlit: LLM integration (#3)', tags: ['AI'], color: 'ai',
+        start: '2026-04-03', end: '2026-04-07', done: false, owner: '',
+        detail: {
+          summary: 'Connect the Streamlit app to an LLM API. The app should send the position description + reference data as context and display the structured classification result.',
+          steps: [
+            'Choose LLM API (Claude, Gemini, or OpenAI) -- team decision',
+            'Install SDK: <code>pip install anthropic</code> or <code>pip install google-generativeai</code>',
+            'Store API key in <code>st.secrets</code> or environment variable',
+            'On "Classify" click: build prompt from template + PD text + reference data context',
+            'Send to LLM API, parse structured response',
+            'Display: duty mapping table, classification result, pay recommendation, explanation',
+            'Add loading spinner and error handling',
+            'Demonstrate agentic design: reasoning (duty analysis), tool use (DB query), reflection (caveats)'
+          ],
+          criteria: ['LLM API connected', 'Classification runs end-to-end', 'Output is structured (not raw text)', 'Agentic elements visible', 'Error handling works'],
+          deps: ['Streamlit skeleton', 'Prompt v2', 'LLM API key'],
+          rubric: 'AI Course: "Code demo: Technically challenging, logically sound" (7%)',
+          tips: 'The agentic framing is important for the rubric. Make it visible: show the reasoning steps, show which tools/data the AI consulted, show the reflection/caveats. Use st.expander() to show intermediate steps.'
+        }
+      },
+      {
+        label: 'Streamlit: deploy to URL (#3)', tags: ['AI'], color: 'ai',
+        start: '2026-04-07', end: '2026-04-09', done: false, owner: '',
+        detail: {
+          summary: 'Deploy the Streamlit app to a public URL so the team can demo it live at the poster presentation.',
+          steps: [
+            'Option A (easiest): Streamlit Cloud -- push to GitHub, connect at share.streamlit.io',
+            'Option B: GCP Cloud Run -- build Docker image, deploy',
+            'Option C: Heroku or Railway -- simple git push deploy',
+            'Add <code>requirements.txt</code> with all dependencies',
+            'Add <code>.streamlit/secrets.toml</code> for API keys (do NOT commit)',
+            'Test the deployed URL from a different device',
+            'Verify it works on the presentation room wifi/network'
+          ],
+          criteria: ['App accessible at public URL', 'No API keys exposed in code', 'Works on presentation day', 'Demo-ready with sample position description pre-loaded'],
+          deps: ['Streamlit LLM integration'],
+          rubric: 'AI Course: "A link to an externally hosted website or app" (required deliverable)',
+          tips: 'Streamlit Cloud is the path of least resistance. It auto-deploys from GitHub and handles hosting. Just make sure your secrets are configured in the Streamlit Cloud dashboard, not in the code.'
+        }
+      },
+      {
+        label: 'Notebook visualizations (#8)', tags: ['BD'], color: 'bd',
+        start: '2026-04-03', end: '2026-04-06', done: false, owner: '',
+        detail: {
+          summary: 'Add data visualizations to the Jupyter notebook using matplotlib, seaborn, or plotly. The rubric requires "relevant charts, dashboards, or plots."',
+          steps: [
+            'Import visualization libraries at the top of notebook',
+            'Chart 1: Bar chart of roles per occupational family (7 families, shows taxonomy breadth)',
+            'Chart 2: Heatmap or grouped bar of pay band distribution across career groups',
+            'Chart 3: Horizontal bar of career group sizes (roles per group, shows variance)',
+            'Chart 4: Pie/donut of HTML vs PDF source distribution (50 vs 6)',
+            'Chart 5: Box plot of pay band ranges by family (shows compensation spread)',
+            'Add a markdown cell before each chart explaining what it shows and why it matters',
+            'Use consistent colors and professional styling'
+          ],
+          criteria: ['At least 4 charts in notebook', 'Each chart has explanatory markdown', 'Professional styling', 'Charts render correctly in notebook output'],
+          deps: ['DataFrames populated (done)'],
+          rubric: 'Big Data: "Visualization: Create relevant charts to highlight key observations"',
+          tips: 'Use seaborn for statistical charts and plotly for interactive ones. Keep the color palette consistent. A plotly chart is impressive because the professor can hover over data points in the notebook.'
+        }
+      },
+      {
+        label: 'Pay estimation prompt (#12)', tags: ['Shared'], color: 'shared',
+        start: '2026-04-02', end: '2026-04-04', done: false, owner: '',
+        detail: {
+          summary: 'Create a separate prompt template for compensation estimation. Takes a classification result + salary data and produces a pay recommendation with math.',
+          steps: [
+            'Define input format: classification result (career group, role, band) + salary tables',
+            'Single classification: output full W&M pay grade range (min/midpoint/max)',
+            'Blended classification: output weighted average with math shown',
+            'Include the BLEND_THRESHOLD variable (default 30%)',
+            'Test with Assistant Controller: should output S18 range',
+            'Test a hypothetical blended case: e.g., 60% Financial Services Band 7 + 40% General Admin Band 5',
+            'Verify math is correct in both cases',
+            'Save as pay_estimation_prompt_template.md'
+          ],
+          criteria: ['Single classification pay works', 'Blended pay with weighted math works', 'BLEND_THRESHOLD is configurable', 'Works with any LLM'],
+          deps: ['Classification prompt v2', 'Crosswalk table (done)'],
+          rubric: 'Shared: compensation logic for Streamlit app + HR handoff prompts',
+          tips: 'Show the math explicitly. HR needs to see "Band 7 = S18 = $91,133 - $210,964" and for blends: "60% of S18 midpoint + 40% of S12 midpoint = weighted recommendation." Transparency builds trust.'
+        }
+      },
+      {
+        label: 'Validate 10+ W&M positions (#13)', tags: ['Shared'], color: 'shared',
+        start: '2026-04-03', end: '2026-04-09', done: false, owner: '',
+        detail: {
+          summary: 'Find 10+ real W&M job postings and run each through the classification pipeline. Compare expected vs. actual results. This is the evidence that the tool works.',
+          steps: [
+            'Go to <code>williammary.wd12.myworkdayjobs.com</code>',
+            'Find 10+ diverse positions across different families (admin, IT, facilities, academic support, health)',
+            'Copy each position description',
+            'Run through classification prompt (v2)',
+            'For each: record expected classification (based on your reading) vs. LLM output',
+            'Note accuracy: correct career group? correct role level? correct pay band?',
+            'Identify edge cases: positions that span families, unusual titles, thin descriptions',
+            'Split across team: each person tests 2-3 positions',
+            'Compile results into a summary table'
+          ],
+          criteria: ['10+ positions tested', 'Mix of occupational families', 'Expected vs. actual for each', 'Accuracy metrics calculated', 'Edge cases documented'],
+          deps: ['Classification prompt v2', 'Pay estimation prompt'],
+          rubric: 'Both courses: demonstrates the tool works. HR Handoff: feeds validation report.',
+          tips: 'This is a team task. Each person picks 2-3 postings and runs them independently. Then compare notes. Disagreements between team members on "expected" classification are valuable -- they show where the taxonomy is ambiguous.'
+        }
+      },
+      {
+        label: 'Responsible AI write-up (#6)', tags: ['AI'], color: 'ai',
+        start: '2026-04-05', end: '2026-04-07', done: false, owner: '',
+        detail: {
+          summary: 'Document responsible AI considerations. Required in the README, on the poster, and ready for verbal discussion at Q&A.',
+          steps: [
+            'Bias: LLMs may reflect historical biases in DHRM classification taxonomy',
+            'Human-in-the-loop: AI recommends, HR decides -- never autonomous classification',
+            'Data privacy: no PII in prompts, only public DHRM data used for training context',
+            'Explainability: every classification includes a narrative explanation with reasoning',
+            'Transparency: duty mapping and pay math shown, not just final answer',
+            'Configurable thresholds: HR controls blend percentage without touching code',
+            'AI-agnostic: not locked to any vendor, works with Copilot/Gemini/Claude',
+            'Write 2-3 paragraphs suitable for README + bullet points for poster'
+          ],
+          criteria: ['README section written', 'Poster bullet points ready', 'Talking points for Q&A prepared'],
+          deps: [],
+          rubric: 'AI Course: Responsible AI section required in README and poster',
+          tips: 'Frame this positively: "Here is how we designed the tool to be responsible" rather than "Here are the risks." The human-in-the-loop design is the strongest point -- lean into it.'
+        }
+      },
+      {
+        label: 'Ethical reflection (#10)', tags: ['BD'], color: 'bd',
+        start: '2026-04-05', end: '2026-04-07', done: false, owner: '',
+        detail: {
+          summary: 'Write an ethical reflection for the Big Data course. Similar to Responsible AI but framed around data practices.',
+          steps: [
+            'Data source ethics: all data is public (DHRM website), no PII collected',
+            'Scraping ethics: rate limiting (1-2s delays), robots.txt compliance, respectful to server',
+            'Classification bias: DHRM taxonomy reflects historical occupational structures that may embed bias',
+            'LLM disclosure: AI tools used with disclosure per course policy (Category B)',
+            'Privacy if HR adds proprietary data: schema supports data_source tagging to separate public vs. private',
+            'Write as a notebook markdown cell + slide deck section'
+          ],
+          criteria: ['Notebook markdown cell written', 'Slide content drafted', 'Addresses data practices specifically'],
+          deps: [],
+          rubric: 'Big Data: "Ethical Reflection: discuss ethical implications, biases, how addressed"',
+          tips: 'This overlaps with Responsible AI but is framed for a data course. Focus on data collection ethics, not just AI ethics. Mention the rate limiting and robots.txt compliance as evidence of ethical scraping.'
+        }
+      },
+      {
+        label: 'Project folder structure (#11)', tags: ['BD'], color: 'bd',
+        start: '2026-04-06', end: '2026-04-07', done: false, owner: '',
+        detail: {
+          summary: 'Reorganize the project into the folder structure required by the Big Data rubric.',
+          steps: [
+            'Create target structure: <code>data/</code>, <code>notebooks/</code>, <code>reports/</code>, <code>ppt/</code>',
+            'Move raw_pages/ and hr_handoff/ under data/',
+            'Move griffin_dhrm_pipeline.ipynb under notebooks/',
+            'Move docs/ content appropriately',
+            'Update any relative paths in the notebook',
+            'Add a short README section explaining folder structure',
+            'Verify notebook still runs after the move'
+          ],
+          criteria: ['Clean folder structure', 'No orphan files in root', 'Notebook runs from new location', 'README documents structure'],
+          deps: [],
+          rubric: 'Big Data: "Project Assets: clear folder structure (data/, notebooks/, reports/, ppt/)"',
+          tips: 'Do this after the notebook is mostly final to avoid breaking paths during development. Use relative paths in the notebook so it works regardless of where the repo is cloned.'
+        }
+      },
+    ]
+  },
+  {
+    name: 'Production + Present (Apr 11 - Apr 18)',
+    tasks: [
+      {
+        label: 'Poster design + content (#4)', tags: ['AI'], color: 'ai',
+        start: '2026-04-08', end: '2026-04-12', done: false, owner: '',
+        detail: {
+          summary: 'Create a conference-style poster for the April 15 presentation. Three awards given: Agentic Design Excellence, Innovation, Communication Excellence.',
+          steps: [
+            'Choose a tool: Canva, PowerPoint, or LaTeX poster template',
+            'Layout sections: Problem, Architecture, Demo, Results, Research, Responsible AI, Team',
+            'Create or embed the 3-layer architecture diagram',
+            'Add Streamlit app screenshots (from deployed version)',
+            'Include research paper summary (1-2 sentences + citation)',
+            'Add responsible AI bullet points',
+            'Team member photos and names',
+            'Print or prepare for screen display (check presentation room setup)',
+            'Rehearse: each team member should know their poster section'
+          ],
+          criteria: ['All required sections present', 'Visually professional', 'Architecture diagram clear', 'Research paper cited', 'Ready for print/display'],
+          deps: ['Streamlit deployed', 'Research paper found', 'Responsible AI written'],
+          rubric: 'AI Course: "Poster is visually effective and covers everything required" (7%)',
+          tips: 'Keep text minimal on the poster -- it should be visual. Use the poster as a conversation starter, not a document to read. Judges spend 5-10 minutes per team, so prioritize the demo and talking points.'
+        }
+      },
+      {
+        label: 'README finalize (#1)', tags: ['AI'], color: 'ai',
+        start: '2026-04-10', end: '2026-04-13', done: false, owner: '',
+        detail: {
+          summary: 'Final pass on the GitHub README. Add screenshots, finalize references, polish writing.',
+          steps: [
+            'Add Streamlit app screenshots',
+            'Finalize reference list with research paper + all sources used',
+            'Review all sections for completeness and clarity',
+            'Check: does the README tell a complete story without reading the code?',
+            'Proofread for typos and formatting',
+            'Verify all links work'
+          ],
+          criteria: ['All sections complete', 'Screenshots added', 'References finalized', 'Links working', 'Professional quality'],
+          deps: ['Streamlit deployed', 'Research paper found'],
+          rubric: 'AI Course: "Github repo is organized and covers everything required" (7%)',
+          tips: 'The README is the first thing judges see. Make the first screen (above the fold) compelling: project title, one-line description, architecture diagram, and a "Quick Start" section.'
+        }
+      },
+      {
+        label: 'Dry run: AI poster presentation', tags: ['AI'], color: 'ai',
+        start: '2026-04-13', end: '2026-04-14', done: false, owner: '',
+        detail: {
+          summary: 'Practice the poster presentation with the full team. Each member rehearses their section. Time the demo.',
+          steps: [
+            'Set up: poster displayed, Streamlit app open, GitHub repo open',
+            'Each member presents their section (2-3 min each)',
+            'Run the Streamlit demo live with a sample position description',
+            'Practice Q&A: common questions about classification logic, AI ethics, technical choices',
+            'Time check: total should fit the conference format',
+            'Fix any last-minute issues discovered during dry run'
+          ],
+          criteria: ['All members rehearsed', 'Demo works live', 'Q&A prepared', 'Timing appropriate'],
+          deps: ['Poster done', 'Streamlit deployed'],
+          rubric: 'AI Course: "Team demonstrates effective team collaboration, all members engaged" (1%)',
+          tips: 'Practice the demo on the same network/device you will use at the presentation. WiFi issues are the #1 cause of demo failures. Have a backup plan (screenshots, recorded video) if the live demo fails.'
+        }
+      },
+      {
+        label: 'Big Data slide deck (#9)', tags: ['BD'], color: 'bd',
+        start: '2026-04-10', end: '2026-04-15', done: false, owner: '',
+        detail: {
+          summary: 'Create the slide deck for the April 17 Big Data course presentation.',
+          steps: [
+            'Slide 1: Title + team + date',
+            'Slide 2: Problem statement and business question',
+            'Slide 3: Data sources and acquisition strategy (DHRM website, scraping approach)',
+            'Slide 4: Architecture diagram (pipeline: scraping -> parsing -> DB -> analysis)',
+            'Slide 5-6: Technology stack (BeautifulSoup, regex, pandas, sqlalchemy, Cloud SQL, pdfplumber)',
+            'Slide 7-8: Key visualizations from notebook (embed charts)',
+            'Slide 9: LLM integration and classification logic',
+            'Slide 10: Ethical reflection',
+            'Slide 11: Findings and next steps',
+            'Slide 12: Q&A'
+          ],
+          criteria: ['All rubric sections covered', 'Architecture diagram included', 'Visualizations embedded', 'Ethical reflection present', 'Professional design'],
+          deps: ['Notebook visualizations', 'Cloud SQL deployed', 'Ethical reflection written'],
+          rubric: 'Big Data: Supporting Slide Deck -- problem, approach, architecture, findings, recommendations',
+          tips: 'The Big Data course emphasizes the pipeline and tools, not the AI. Focus on: "We scraped 56 pages, parsed 3 different formats, loaded to Cloud SQL, and analyzed the taxonomy." The LLM is a feature, not the focus.'
+        }
+      },
+      {
+        label: 'Dry run: Big Data presentation', tags: ['BD'], color: 'bd',
+        start: '2026-04-15', end: '2026-04-16', done: false, owner: '',
+        detail: {
+          summary: 'Practice the Big Data presentation. Focus on the pipeline demo and technical depth.',
+          steps: [
+            'Run through slides with full team',
+            'Demo: walk through key notebook cells (scraping, parsing, DB load, visualization)',
+            'Show GCP Console with Cloud SQL instance',
+            'Practice explaining technical choices to a non-technical audience',
+            'Time check: fit within the allotted presentation window',
+            'Prepare for questions about scalability, alternative approaches, course tool choices'
+          ],
+          criteria: ['All members rehearsed', 'Notebook demo works', 'GCP evidence ready', 'Timing appropriate'],
+          deps: ['Slide deck done'],
+          rubric: 'Big Data: Presentation quality',
+          tips: 'The professor values seeing course tools in action. Walk through the notebook live: show a scrape, show regex parsing, show the sqlalchemy load, show a visualization. Brief and focused beats exhaustive.'
+        }
+      },
+      {
+        label: 'Data dictionary (#14)', tags: ['HR'], color: 'hr',
+        start: '2026-04-11', end: '2026-04-14', done: false, owner: '',
+        detail: {
+          summary: 'Document every field in every Excel file for HR. Must be usable by a non-technical audience.',
+          steps: [
+            'For each of the 7 Excel files, list every column',
+            'For each column: field name, plain-English description, data type, source, update frequency',
+            'Add a section on how HR adds their proprietary data (which files, which columns, what format)',
+            'Explain the data_source column (DHRM_PUBLIC vs PROPRIETARY)',
+            'Format as a Word doc or PDF (HR-friendly, not markdown)',
+            'Have a non-technical person review it for clarity'
+          ],
+          criteria: ['All 7 files documented', 'Every field described', 'Proprietary data instructions included', 'Non-technical language throughout'],
+          deps: ['Excel files finalized (done)'],
+          rubric: 'HR Handoff: data dictionary is a required deliverable',
+          tips: 'Test it: could someone who has never seen this data open the Excel file and understand every column using only the data dictionary? If not, rewrite. Avoid jargon like "FK", "VARCHAR", "nullable".'
+        }
+      },
+      {
+        label: 'User guide / SOP (#15)', tags: ['HR'], color: 'hr',
+        start: '2026-04-12', end: '2026-04-16', done: false, owner: '',
+        detail: {
+          summary: 'Step-by-step guide for HR to use the classification tool. Must be usable by a non-technical HR professional on day one.',
+          steps: [
+            'Section 1: Overview -- what the tool does and does not do',
+            'Section 2: Classify a position (full workflow with screenshots)',
+            'Section 3: Using prompts with Copilot/Gemini (copy-paste instructions)',
+            'Section 4: Interpreting results (single vs. blended, what the explanation means)',
+            'Section 5: Adjusting the blend threshold (when and how)',
+            'Section 6: Updating data files when salary structures change',
+            'Section 7: Troubleshooting common edge cases',
+            'Format as Word doc or PDF with screenshots',
+            'Quality test: "Could an HR professional with no tech background use this on day one?"'
+          ],
+          criteria: ['All sections complete', 'Screenshots included', 'Non-technical language', 'Passes the "day one" test'],
+          deps: ['Prompts finalized', 'Streamlit deployed (for screenshots)'],
+          rubric: 'HR Handoff: user guide / SOP is a required deliverable',
+          tips: 'Write for someone who has never heard of DHRM career groups. Start with "What problem does this solve?" before diving into "How to use it." Include a quick-start (1-page summary) at the beginning.'
+        }
+      },
+      {
+        label: 'Validation report (#16)', tags: ['HR'], color: 'hr',
+        start: '2026-04-14', end: '2026-04-17', done: false, owner: '',
+        detail: {
+          summary: 'Document test results from the 10+ position validation exercise. This is evidence that the tool works.',
+          steps: [
+            'Compile results from task #13 (Validate 10+ positions)',
+            'Create a results table: Position Title, Expected Classification, Actual Output, Match (Y/N), Notes',
+            'Calculate accuracy metrics: % correct career group, % correct role level, % correct pay band',
+            'Document edge cases: what tripped up the tool and why',
+            'Write recommendations: when to trust the tool vs. when to exercise extra judgment',
+            'Format as Word doc or PDF'
+          ],
+          criteria: ['10+ test cases documented', 'Accuracy metrics calculated', 'Edge cases described', 'Recommendations included'],
+          deps: ['Validate 10+ positions (#13)'],
+          rubric: 'HR Handoff: validation report is a required deliverable',
+          tips: 'Honesty builds credibility. If the tool got 7/10 correct, say so and explain what went wrong on the other 3. HR will trust a tool that is transparent about its limitations more than one that claims perfection.'
+        }
+      },
+    ]
+  },
+];
+
+// ============================================================
+// RENDER -- Pure DOM manipulation (no innerHTML += after build)
+// ============================================================
+
+function fmt(d) { return d.toISOString().slice(0,10); }
+function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
+function isWeekend(d) { const day = d.getDay(); return day === 0 || day === 6; }
+
+const totalDays = daysBetween(startDate, endDate) + 1;
+const dates = [];
+for (let i = 0; i < totalDays; i++) {
+  const d = new Date(startDate);
+  d.setDate(d.getDate() + i);
+  dates.push(d);
+}
+
+// Use real date so the today marker moves as time passes
+const todayStr = fmt(new Date());
+const table = document.getElementById('gantt');
+const panel = document.getElementById('detail-panel');
+const panelTitle = document.getElementById('panel-title');
+const panelBody = document.getElementById('panel-body');
+const panelClose = document.getElementById('panel-close');
+
+let selectedRow = null;
+
+// --- Owner persistence via localStorage ---
+const STORAGE_KEY = 'griffin-gantt-owners';
+
+function loadOwners() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveOwner(taskLabel, name) {
+  const owners = loadOwners();
+  if (name) owners[taskLabel] = name;
+  else delete owners[taskLabel];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(owners));
+}
+function getOwner(task) {
+  const saved = loadOwners()[task.label];
+  return saved || task.owner || '';
+}
+
+// Build a flat list of all tasks for export
+function getAllTasks() {
+  const all = [];
+  sections.forEach(sec => sec.tasks.forEach(t => all.push(t)));
+  return all;
+}
+
+// Update owner badge on the task row in the table
+function updateRowOwnerBadge(taskLabel, ownerName) {
+  const row = table.querySelector(`tr[data-task-label="${CSS.escape(taskLabel)}"]`);
+  if (!row) return;
+  const labelCell = row.querySelector('.task-label');
+  if (!labelCell) return;
+  let badge = labelCell.querySelector('.owner-badge');
+  if (ownerName) {
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'owner-badge';
+      labelCell.appendChild(badge);
+    }
+    badge.textContent = ownerName;
+  } else if (badge) {
+    badge.remove();
+  }
+}
+
+// Close panel
+panelClose.addEventListener('click', closePanel);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+function closePanel() {
+  panel.classList.remove('open');
+  document.body.classList.remove('panel-open');
+  if (selectedRow) {
+    selectedRow.classList.remove('selected');
+    selectedRow.removeAttribute('aria-expanded');
+    selectedRow = null;
+  }
+}
+
+function openPanel(task, row) {
+  // Toggle: clicking the same row closes the panel
+  if (selectedRow === row) { closePanel(); return; }
+
+  if (selectedRow) {
+    selectedRow.classList.remove('selected');
+    selectedRow.removeAttribute('aria-expanded');
+  }
+  selectedRow = row;
+  row.classList.add('selected');
+  row.setAttribute('aria-expanded', 'true');
+
+  const d = task.detail;
+  const statusClass = task.done ? 'meta-status-done' : 'meta-status-todo';
+  const statusText = task.done ? 'COMPLETE' : 'TO DO';
+
+  panelTitle.textContent = task.label;
+
+  const colors = {AI:'#17a2b8',BD:'#8e44ad',HR:'#27ae60',Shared:'#e67e22'};
+  const labels = {AI:'AI Course',BD:'Big Data',HR:'HR Handoff',Shared:'Shared'};
+
+  let html = `
+    <div class="panel-meta">
+      <span class="meta-chip ${statusClass}">${statusText}</span>
+      <span class="meta-chip meta-dates">${task.start} to ${task.end}</span>
+      ${task.tags.map(t =>
+        `<span class="meta-chip" style="background:${colors[t]};color:#fff">${labels[t]}</span>`
+      ).join('')}
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Summary</div>
+      <p>${d.summary}</p>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">How To (Step by Step)</div>
+      <ol>${d.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Acceptance Criteria</div>
+      <ul>${d.criteria.map(c => `<li>${task.done ? '<s>' + c + '</s>' : c}</li>`).join('')}</ul>
+    </div>
+  `;
+
+  if (d.deps && d.deps.length > 0) {
+    html += `
+      <div class="panel-section">
+        <div class="panel-section-title">Dependencies</div>
+        <div>${d.deps.map(dep => `<span class="dep-tag">${dep}</span>`).join('')}</div>
+      </div>`;
+  }
+  if (d.rubric) {
+    html += `
+      <div class="panel-section">
+        <div class="panel-section-title">Rubric Connection</div>
+        <div><span class="rubric-tag">${d.rubric}</span></div>
+      </div>`;
+  }
+  if (d.tips) {
+    html += `
+      <div class="panel-section">
+        <div class="panel-section-title">Tips</div>
+        <p>${d.tips}</p>
+      </div>`;
+  }
+
+  // Owner assignment section
+  const currentOwner = getOwner(task);
+  html += `
+    <div class="panel-section" style="border-top:2px solid #dee2e6;margin-top:12px;padding-top:12px">
+      <div class="panel-section-title">Owner / Assignee</div>
+      <input type="text" class="owner-input" id="owner-input"
+             value="${currentOwner}" placeholder="Type a name to claim this task..."
+             autocomplete="off" />
+      <div class="owner-save-hint">Saves automatically when you type. Persists in your browser.</div>
+    </div>
+  `;
+
+  panelBody.innerHTML = html;
+
+  // Wire up owner input with auto-save
+  const ownerInput = document.getElementById('owner-input');
+  let saveTimeout = null;
+  ownerInput.addEventListener('input', () => {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      const name = ownerInput.value.trim();
+      saveOwner(task.label, name);
+      task.owner = name;
+      updateRowOwnerBadge(task.label, name);
+    }, 400);
+  });
+
+  panel.classList.add('open');
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', task.label);
+  document.body.classList.add('panel-open');
+  panel.scrollTop = 0;
+}
+
+// --- Build table using a DocumentFragment (one DOM write) ---
+
+function getWeekLabel(d) {
+  const mon = new Date(d);
+  mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  return `Week of ${mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+}
+
+const stickyLabelStyle = 'position:sticky;left:0;z-index:4;min-width:240px;border-right:2px solid #adb5bd';
+const labelBorder = 'border-right:2px solid #adb5bd';
+const dayNames = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+// Helper: build cell classes
+function cellCls(d) {
+  return ['cell', isWeekend(d)?'weekend':'', fmt(d)===todayStr?'today-col':''].filter(Boolean).join(' ');
+}
+
+// Accumulate ALL rows as HTML strings first, then set innerHTML once
+const rowsHtml = [];
+
+// Week header row
+let weekStart = null, weekSpan = 0, weekCells = [];
+dates.forEach((d, i) => {
+  const wk = getWeekLabel(d);
+  if (wk !== weekStart) {
+    if (weekStart !== null) weekCells.push([weekStart, weekSpan]);
+    weekStart = wk; weekSpan = 1;
+  } else { weekSpan++; }
+  if (i === dates.length - 1) weekCells.push([weekStart, weekSpan]);
+});
+let weekRowHtml = `<tr class="week-row"><th style="${stickyLabelStyle};background:#343a40">Task</th>`;
+weekCells.forEach(([l, s]) => { weekRowHtml += `<th colspan="${s}">${l}</th>`; });
+weekRowHtml += '</tr>';
+rowsHtml.push(weekRowHtml);
+
+// Day header row
+let dayRowHtml = `<tr class="day-row"><th style="${stickyLabelStyle};background:#495057"></th>`;
+dates.forEach(d => {
+  const ds = fmt(d);
+  const cls = [isWeekend(d)?'weekend':'', ds===todayStr?'today':'', milestones[ds]?'milestone-day':''].filter(Boolean).join(' ');
+  const lbl = milestones[ds] ? `${dayNames[d.getDay()]} ${d.getDate()}` : `${dayNames[d.getDay()]} ${d.getDate()}`;
+  dayRowHtml += `<th class="${cls}" title="${milestones[ds]||ds}">${lbl}</th>`;
+});
+dayRowHtml += '</tr>';
+rowsHtml.push(dayRowHtml);
+
+// Milestone row
+let msRowHtml = `<tr class="checkpoint-row"><td class="task-label" style="${labelBorder}">DEADLINES</td>`;
+dates.forEach(d => {
+  const ds = fmt(d);
+  const cls = cellCls(d);
+  msRowHtml += milestones[ds]
+    ? `<td class="${cls}"><div class="milestone-marker" title="${milestones[ds]}"></div></td>`
+    : `<td class="${cls}"></td>`;
+});
+msRowHtml += '</tr>';
+rowsHtml.push(msRowHtml);
+
+// Task rows -- track indices for post-render event binding
+let taskIndex = 0;
+const taskMap = []; // [{idx, task}]
+
+sections.forEach(section => {
+  // Section header
+  let secHtml = `<tr class="section-row"><td class="task-label" style="${labelBorder}">${section.name}</td>`;
+  dates.forEach(d => { secHtml += `<td class="${cellCls(d)}"></td>`; });
+  secHtml += '</tr>';
+  rowsHtml.push(secHtml);
+
+  section.tasks.forEach(task => {
+    const idx = taskIndex++;
+    taskMap.push({ idx, task });
+
+    const tagHtml = task.tags.map(t => {
+      const cls = t==='AI'?'tag-ai':t==='BD'?'tag-bd':t==='HR'?'tag-hr':'tag-shared';
+      return `<span class="tag ${cls}">${t}</span>`;
+    }).join('');
+
+    // Task row with data attributes for event binding + owner lookup
+    const savedOwner = getOwner(task);
+    const ownerBadge = savedOwner ? `<span class="owner-badge">${savedOwner}</span>` : '';
+    const escapedLabel = task.label.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    let trHtml = `<tr class="task-row" data-task-idx="${idx}" data-task-label="${escapedLabel}" role="button" tabindex="0" aria-expanded="false">`;
+    trHtml += `<td class="task-label" style="${labelBorder}">${task.label} ${tagHtml}${ownerBadge}</td>`;
+
+    const taskStart = new Date(task.start + 'T00:00:00');
+    const taskEnd = new Date(task.end + 'T00:00:00');
+
+    dates.forEach(d => {
+      const ds = fmt(d);
+      const cls = cellCls(d);
+      const inRange = d >= taskStart && d <= taskEnd;
+      let bar = '';
+      if (inRange) {
+        const bc = task.done ? 'bar-done' : `bar-${task.color}`;
+        const isS = ds === fmt(taskStart), isE = ds === fmt(taskEnd);
+        const shape = (isS && isE) ? 'bar-single' : isS ? 'bar-start' : isE ? 'bar-end' : 'bar-mid';
+        bar = `<div class="bar ${bc} ${shape}"></div>`;
+      }
+      trHtml += `<td class="${cls}">${bar}</td>`;
+    });
+    trHtml += '</tr>';
+    rowsHtml.push(trHtml);
+  });
+});
+
+// Stats row
+const workingDays = dates.filter(d => !isWeekend(d) && d >= new Date(todayStr+'T00:00:00')).length;
+const dToAI = daysBetween(new Date(todayStr+'T00:00:00'), new Date('2026-04-15T00:00:00'));
+const dToBD = daysBetween(new Date(todayStr+'T00:00:00'), new Date('2026-04-17T00:00:00'));
+let statsHtml = `<tr><td class="task-label" style="${labelBorder};font-size:0.78rem;color:#888">${workingDays} working days left | ${dToAI}d to AI poster | ${dToBD}d to Big Data deck</td>`;
+dates.forEach(d => { statsHtml += `<td class="${cellCls(d)}"></td>`; });
+statsHtml += '</tr>';
+rowsHtml.push(statsHtml);
+
+// === ONE innerHTML write, then attach listeners ===
+table.innerHTML = rowsHtml.join('');
+
+// Attach click + keyboard listeners to task rows via data attributes
+taskMap.forEach(({ idx, task }) => {
+  const row = table.querySelector(`tr[data-task-idx="${idx}"]`);
+  if (!row) return;
+  row.addEventListener('click', () => openPanel(task, row));
+  row.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openPanel(task, row);
+    }
+  });
+});
+
+// Export owners button -- copies tab-separated list to clipboard
+document.getElementById('export-owners-btn').addEventListener('click', () => {
+  const owners = loadOwners();
+  const allTasks = getAllTasks();
+  let text = 'Task\tOwner\tStatus\tStart\tEnd\n';
+  allTasks.forEach(t => {
+    const owner = owners[t.label] || t.owner || '';
+    const status = t.done ? 'Done' : 'To Do';
+    text += `${t.label}\t${owner}\t${status}\t${t.start}\t${t.end}\n`;
+  });
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('export-owners-btn');
+    btn.textContent = 'Copied!';
+    btn.style.background = '#d4edda';
+    setTimeout(() => { btn.textContent = 'Export Owners'; btn.style.background = '#fff'; }, 2000);
+  });
+});
+</script>
+
+</body>
+</html>
