@@ -992,5 +992,6 @@ st.markdown("""
     GRIFFIN &nbsp;&middot;&nbsp; William &amp; Mary Mason School of Business
     &nbsp;&middot;&nbsp; HR Position Classification &amp; Pay Tool
     &nbsp;&middot;&nbsp; BUAD 5722 / BUAD 5742 &nbsp;&middot;&nbsp; Team 7
+    <br><span style="font-size:0.65rem; color:#999;">Salary data: CareerOneStop, U.S. Department of Labor/ETA (careeronestop.org)</span>
 </div>
 """, unsafe_allow_html=True)

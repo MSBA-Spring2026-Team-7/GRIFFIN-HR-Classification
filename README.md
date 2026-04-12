@@ -349,11 +349,13 @@ All credentials are managed through `.env` files excluded from version control. 
 ## References
 
 - Virginia DHRM: https://www.dhrm.virginia.gov/
-- CareerOneStop API: https://www.careeronestop.org/Developers/WebAPI/web-api.aspx
+- CareerOneStop API (U.S. DOL/ETA): https://www.careeronestop.org/
 - H2O AutoML: https://docs.h2o.ai/h2o/latest-stable/h2o-docs/automl.html
 - LangChain: https://python.langchain.com/
 - Streamlit: https://streamlit.io/
 - SHAP: https://shap.readthedocs.io/
+
+> **Data Attribution:** Salary benchmarking data provided by CareerOneStop, sponsored by the U.S. Department of Labor, Employment and Training Administration (USDOL/ETA). This project does not reflect the official position of USDOL/ETA and USDOL/ETA makes no guarantees, warranties, or assurances of any kind with respect to such information.
 
 ---
 
