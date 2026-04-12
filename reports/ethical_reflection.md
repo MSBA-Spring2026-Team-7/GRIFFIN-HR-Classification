@@ -1,7 +1,7 @@
 # Ethical Reflection: GRIFFIN HR Classification Project
 
 **William & Mary Mason School of Business**
-BUAD 5722 / BUAD 5742 -- Spring 2026 | Team 7: Steven, Anmol, Brynn, Jhei-R
+BUAD 5722 / BUAD 5742 -- Spring 2026 | Team 7: Steven Alvarado, Anmol Motwani, JR Jones, Brynn Vetrano
 
 ---
 

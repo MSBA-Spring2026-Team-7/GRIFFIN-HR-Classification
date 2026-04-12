@@ -8,7 +8,7 @@ Streamlit frontend that classifies position descriptions into DHRM
 career groups/roles and displays pay band information. Uses Google
 Gemini for AI-powered classification and explanation.
 
-Team 7: Steven, Anmol, Brynn, Jhei-R
+Team 7: Steven Alvarado, Anmol Motwani, JR Jones, Brynn Vetrano
 """
 
 import os
