@@ -33,9 +33,8 @@ dependencies:
   # --- Jupyter kernel support ---
   - ipykernel
 
-  # --- H2O (install separately) ---
-  # H2O requires Java. Follow the Big Data course lab setup process.
-  # Do NOT uncomment these -- install H2O via the lab instructions instead.
+  # --- Java (required for H2O in Notebook 5) ---
+  - openjdk=11
 
   # --- pip-only packages ---
   - pip:
@@ -43,3 +42,5 @@ dependencies:
     - langchain
     - langchain-core
     - langgraph
+    - google-generativeai
+    - python-dotenv

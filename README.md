@@ -36,7 +36,8 @@ HR_Classification_Project/
 ├── reports/                     Analysis reports and visualizations
 ├── ppt/                         Presentation slide decks
 ├── docs/                        Project management (kanban, schedule, tasks)
-└── archive/                     Legacy files preserved for reference
+├── archive/                     Legacy files preserved for reference
+└── assignment5/                 Original A5 submission (preserved for provenance — use data/ instead)
 ```
 
 ## Quick Start
@@ -53,14 +54,20 @@ HR_Classification_Project/
    # Edit .env with your actual API keys
    ```
 
-3. **Run the notebook pipeline in order:**
+3. **Install H2O (required for Notebook 5):**
+   ```
+   pip install h2o
+   ```
+   > Java is included via `openjdk=11` in environment.yml. If NB5 fails with a Java error, see `docs/griffin-operations-guide.html` Section 7.
+
+4. **Run the notebook pipeline in order:**
    - `1_environment_setup.ipynb` -- verify packages and Java (needed for H2O)
    - `2_dhrm_pipeline.ipynb` -- scrape and parse all 56 DHRM career groups
    - `3_workday_scrape.ipynb` -- scrape W&M Workday postings, censor labels
    - `4_feature_engineering.ipynb` -- extract 15 structured features from PDs
    - `5_h2o_automl.ipynb` -- train classifier, generate SHAP explanations
 
-4. **Run the classification app:**
+5. **Run the classification app:**
    ```
    cd app
    python run_demo.py

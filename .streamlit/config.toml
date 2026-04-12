@@ -1,0 +1,15 @@
+[theme]
+base = "light"
+primaryColor = "#115740"
+backgroundColor = "#F7F4EE"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#2D2D2D"
+borderColor = "#DDD8C8"
+
+font = "'Open Sans':https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap"
+
+[theme.sidebar]
+backgroundColor = "#115740"
+secondaryBackgroundColor = "#0D4230"
+textColor = "#FFFFFF"
+borderColor = "#C99700"
