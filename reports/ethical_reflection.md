@@ -15,6 +15,8 @@ All source data for the DHRM career group taxonomy was scraped from the Virginia
 
 Even though the data is publicly available, we implemented responsible scraping practices. Our pipeline notebook (`notebooks/2_dhrm_pipeline.ipynb`) includes a 1.5-second delay between HTTP requests (`time.sleep(1.5)`) and caches every downloaded page locally so each URL is fetched at most once. The notebook explicitly documents this rationale: "All DHRM career group pages are public government data. We add a polite delay between requests and cache locally so each page is downloaded at most once." This approach minimizes server load on a government resource while ensuring reproducibility.
 
+Position descriptions used for ML training were collected from William & Mary's public Workday career site (williammary.wd12.myworkdayjobs.com). All postings are publicly accessible without authentication — no login, API key, or click-through agreement is required to view them. William & Mary is a public university and its job postings are government employment records. Collection used rate-limited requests (1.5-second delays) with local caching so each posting was fetched at most once. The Workday platform's robots.txt does not disallow the API path used for data collection.
+
 ## Classification Bias and Fairness
 
 Our training dataset consists of 103 William & Mary position descriptions, which presents inherent limitations. The class distribution is heavily skewed: Administrative Services accounts for 55 of the 103 records, while Engineering and Technology has only 4, and Health and Human Services has just 3. This imbalance means the model has far more evidence for some occupational families than others, and predictions for underrepresented categories carry higher uncertainty.
