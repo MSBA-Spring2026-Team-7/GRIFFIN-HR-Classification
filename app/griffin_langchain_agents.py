@@ -29,7 +29,9 @@ import requests
 # pip install python-dotenv if not already installed.
 try:
     from dotenv import load_dotenv
-    load_dotenv()  # reads .env file in the same directory as the script
+    SCRIPT_DIR_DOTENV = os.path.dirname(os.path.abspath(__file__))
+    PROJECT_ROOT_DOTENV = os.path.join(SCRIPT_DIR_DOTENV, "..")
+    load_dotenv(os.path.join(PROJECT_ROOT_DOTENV, ".env"))  # always loads from project root, regardless of CWD
 except ImportError:
     pass  # dotenv not installed — keys must be set as system env vars instead
 

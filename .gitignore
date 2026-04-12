@@ -31,3 +31,6 @@ desktop.ini
 # R
 .Rhistory
 .RData
+
+# Professor's class materials (not for repo)
+_temp holding/
