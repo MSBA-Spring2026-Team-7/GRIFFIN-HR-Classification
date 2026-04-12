@@ -26,9 +26,15 @@ HR_Classification_Project/
 │   │   └── raw_pages/
 │   └── schema/                  SQL schema + visual diagram
 │
+├── .streamlit/
+│   └── config.toml              Streamlit theme configuration
 ├── app/                         LangChain agents + Streamlit app
+│   ├── streamlit_app.py         Main Streamlit web interface
+│   ├── feature_extraction.py    Regex-based feature extraction (15 features)
+│   ├── ml_classifier.py         H2O/ML fallback classifier
+│   ├── cloud_sql_config.py      GCP Cloud SQL connection config
 │   ├── griffin_langchain_agents.py   Multi-agent classification system
-│   ├── run_demo.py
+│   ├── run_demo.py              LangChain agent terminal demo (Assignment 5)
 │   ├── skills/                  Skill templates (classifier, pay matcher)
 │   └── prompts/                 Classification prompt templates
 │
@@ -67,11 +73,11 @@ HR_Classification_Project/
    - `4_feature_engineering.ipynb` -- extract 15 structured features from PDs
    - `5_h2o_automl.ipynb` -- train classifier, generate SHAP explanations
 
-5. **Run the classification app:**
+5. **Run the Streamlit app:**
    ```
-   cd app
-   python run_demo.py
+   streamlit run app/streamlit_app.py
    ```
+   > **Note:** `app/run_demo.py` is the LangChain agent terminal-based demo (Assignment 5). Use `streamlit run` for the main web interface.
 
 ## Team
 
