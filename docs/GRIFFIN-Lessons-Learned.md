@@ -241,7 +241,7 @@ Add under `## CQM Orchestrator` or as a new section:
 **`project_griffin.md`** -- Project reference file (similar format to `project_dv_course.md`):
 - Location: `Desktop\MSBA\AI Course\HR_Classification_Project\`
 - Status: Layers 1-3 complete (data pipeline, ML training, LangChain agents), Layer 4 pending (Streamlit UI)
-- Team: Anmol (Streamlit/app), Brynn (reports/research), Jhei-R (deck/docs)
+- Team: Anmol (Streamlit/app), Brynn (reports/research), JR Jones (deck/docs)
 - Key docs: `docs/griffin-operations-guide.html`, `GRIFFIN_CLAUDE_MD.md`, `README.md`
 - CQM session: `cqm-sessions/griffin-reorg/` (completed 2026-04-07, 43/43 PASS)
 - Red team: Gemini adversarial review completed; prompt archived at `archive/old_docs/red-team-gemini-prompt.md`
