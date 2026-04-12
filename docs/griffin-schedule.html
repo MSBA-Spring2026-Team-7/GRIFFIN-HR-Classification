@@ -524,7 +524,7 @@ const sections = [
     tasks: [
       {
         label: 'A1: Environment setup (conda)', tags: ['Shared'], color: 'done',
-        start: '2026-03-30', end: '2026-03-30', done: true, owner: 'Steven',
+        start: '2026-03-30', end: '2026-03-30', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Conda env "griffin" created via Anaconda (not venv). Python 3.11, 16 packages. Kernel registered as "GRIFFIN (conda)". H2O setup deferred -- follow Big Data lab process.',
           steps: [
@@ -541,7 +541,7 @@ const sections = [
       },
       {
         label: 'A2: Workday scrape (CQM orchestrated)', tags: ['BD'], color: 'done',
-        start: '2026-03-30', end: '2026-03-31', done: true, owner: 'Steven',
+        start: '2026-03-30', end: '2026-03-31', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: '150 postings fetched via JSON API. 103 staff retained, 47 faculty excluded. Labels: comp_grade (100%), job_profile_code (95%), job_family (97%). CQM Three-Phase, 4 checkpoints, 36 criteria -- all passed.',
           steps: [
@@ -560,7 +560,7 @@ const sections = [
       },
       {
         label: 'A3: Label stripping + censored PDs', tags: ['Shared'], color: 'done',
-        start: '2026-03-31', end: '2026-03-31', done: true, owner: 'Steven',
+        start: '2026-03-31', end: '2026-03-31', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Classification fields stripped from PD text. Zero label leakage confirmed (7-pattern scan across all 103 rows, 15 spot-checks). Outputs: workday_training.csv, workday_postings.csv, workday_exclusions.csv.',
           steps: [
@@ -579,7 +579,7 @@ const sections = [
       },
       {
         label: 'Feature engineering on censored PDs', tags: ['BD'], color: 'done',
-        start: '2026-04-01', end: '2026-04-06', done: true, owner: 'Steven',
+        start: '2026-04-01', end: '2026-04-06', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Extract structured signals from censored PDs: budget, supervision, domain, education, decision scope. Build tabular DataFrame for H2O.',
           steps: [
@@ -597,7 +597,7 @@ const sections = [
       },
       {
         label: 'H2O AutoML training', tags: ['BD'], color: 'done',
-        start: '2026-04-05', end: '2026-04-06', done: true, owner: 'Steven',
+        start: '2026-04-05', end: '2026-04-06', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Train H2O AutoML on tabular features. Predict occupational family (7 classes). Generate leaderboard, variable importance, SHAP, PDP.',
           steps: [
@@ -623,7 +623,7 @@ const sections = [
     tasks: [
       {
         label: 'LangChain multi-agent PoC', tags: ['AI'], color: 'done',
-        start: '2026-04-05', end: '2026-04-06', done: true, owner: 'Steven',
+        start: '2026-04-05', end: '2026-04-06', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Build the three-stage architecture as a LangChain multi-agent system. All 8 Assignment 5 components. Validates design before production Streamlit.',
           steps: [
@@ -644,7 +644,7 @@ const sections = [
       },
       {
         label: 'skill.md + template files', tags: ['AI'], color: 'done',
-        start: '2026-04-06', end: '2026-04-06', done: true, owner: 'Steven',
+        start: '2026-04-06', end: '2026-04-06', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Evolve classification prompt v1 into structured skill.md format with typed parameters and templates for agent tool use.',
           steps: [
@@ -661,7 +661,7 @@ const sections = [
       },
       {
         label: 'Assignment 5 design rationale (1 page)', tags: ['AI'], color: 'done',
-        start: '2026-04-06', end: '2026-04-06', done: true, owner: 'Steven',
+        start: '2026-04-06', end: '2026-04-06', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'One-page markdown report: system architecture, which agent does what, design decisions, LangChain as production framework.',
           steps: [
@@ -683,7 +683,7 @@ const sections = [
     tasks: [
       {
         label: 'URL refactoring in notebook (deferred)', tags: ['BD'], color: 'bd',
-        start: '2026-03-27', end: '2026-03-28', done: false, owner: 'Steven',
+        start: '2026-03-27', end: '2026-03-28', done: false, owner: 'Steven Alvarado',
         detail: {
           summary: 'Refactor the HTML_SOURCES and PDF_SOURCES dictionaries to use a static base URL + dynamic path dictionary with f-strings. Reduces duplication and makes the URL pattern obvious.',
           steps: [
@@ -701,7 +701,7 @@ const sections = [
       },
       {
         label: 'Notebook gap analysis vs. rubrics (absorbed)', tags: ['BD', 'AI'], color: 'done',
-        start: '2026-03-27', end: '2026-03-31', done: true, owner: 'Steven',
+        start: '2026-03-27', end: '2026-03-31', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Review the notebook against both course rubrics and the project spec to identify any gaps before the final push.',
           steps: [
@@ -719,7 +719,7 @@ const sections = [
       },
       {
         label: 'Deploy to Google Cloud SQL (#7)', tags: ['BD'], color: 'done',
-        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Steven',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Migrate from SQLite to Google Cloud SQL (MySQL). This is critical for the Big Data rubric -- "appropriate use of cloud services" is a key criterion.',
           steps: [
@@ -741,7 +741,7 @@ const sections = [
       },
       {
         label: 'GitHub repo + README draft (#1)', tags: ['AI'], color: 'done',
-        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Anmol',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Anmol Motwani',
         detail: {
           summary: 'Create the GitHub repository and draft the README. The rubric grades both "repo is organized" (7%) and "references cited properly" (1%).',
           steps: [
@@ -763,7 +763,7 @@ const sections = [
       },
       {
         label: 'GitHub Projects board setup (#2)', tags: ['AI'], color: 'done',
-        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Anmol',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Anmol Motwani',
         detail: {
           summary: 'Create a GitHub Projects board and populate it with all tasks. The rubric grades "kanban board is visually organized" (7%).',
           steps: [
@@ -783,7 +783,7 @@ const sections = [
       },
       {
         label: 'Research paper search (#5)', tags: ['AI'], color: 'ai',
-        start: '2026-04-01', end: '2026-04-14', done: false, owner: 'Brynn',
+        start: '2026-04-01', end: '2026-04-14', done: false, owner: 'Brynn Vetrano',
         detail: {
           summary: 'Find at least one high-quality academic research paper (< 3 years old) relevant to the project. Must be discussed verbally and appear on the poster.',
           steps: [
@@ -803,7 +803,7 @@ const sections = [
       },
       {
         label: 'Streamlit app (#3)', tags: ['AI'], color: 'done',
-        start: '2026-04-11', end: '2026-04-12', done: true, owner: 'Anmol + Steven',
+        start: '2026-04-11', end: '2026-04-12', done: true, owner: 'Anmol Motwani + Steven Alvarado',
         detail: {
           summary: 'Build the basic Streamlit app structure: text input for position descriptions, placeholder for LLM output, and reference data display.',
           steps: [
@@ -823,7 +823,7 @@ const sections = [
       },
       {
         label: 'Pay estimation prompt (#12)', tags: ['Shared'], color: 'done',
-        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Steven',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Iterate the v1 classification prompt template. Test against the Assistant Controller example. Ensure it produces the correct output structure.',
           steps: [
@@ -849,7 +849,7 @@ const sections = [
     tasks: [
       {
         label: 'Streamlit: LLM integration (#3)', tags: ['AI'], color: 'done',
-        start: '2026-04-11', end: '2026-04-12', done: true, owner: 'Steven',
+        start: '2026-04-11', end: '2026-04-12', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Connect the Streamlit app to an LLM API. The app should send the position description + reference data as context and display the structured classification result.',
           steps: [
@@ -870,7 +870,7 @@ const sections = [
       },
       {
         label: 'Streamlit: deploy to URL (#3)', tags: ['AI'], color: 'done',
-        start: '2026-04-12', end: '2026-04-12', done: true, owner: 'Steven',
+        start: '2026-04-12', end: '2026-04-12', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Deploy the Streamlit app to a public URL so the team can demo it live at the poster presentation.',
           steps: [
@@ -890,7 +890,7 @@ const sections = [
       },
       {
         label: 'Notebook visualizations (#8)', tags: ['BD'], color: 'done',
-        start: '2026-04-08', end: '2026-04-12', done: true, owner: 'Steven',
+        start: '2026-04-08', end: '2026-04-12', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Add data visualizations to the Jupyter notebook using matplotlib, seaborn, or plotly. The rubric requires "relevant charts, dashboards, or plots."',
           steps: [
@@ -911,7 +911,7 @@ const sections = [
       },
       {
         label: 'Pay estimation prompt (#12) [dup]', tags: ['Shared'], color: 'done',
-        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Steven',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Steven Alvarado',
         detail: {
           summary: 'Create a separate prompt template for compensation estimation. Takes a classification result + salary data and produces a pay recommendation with math.',
           steps: [
@@ -954,7 +954,7 @@ const sections = [
       },
       {
         label: 'Responsible AI write-up (#6)', tags: ['AI'], color: 'done',
-        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Brynn',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Brynn Vetrano',
         detail: {
           summary: 'Document responsible AI considerations. Required in the README, on the poster, and ready for verbal discussion at Q&A.',
           steps: [
@@ -975,7 +975,7 @@ const sections = [
       },
       {
         label: 'Ethical reflection (#10)', tags: ['BD'], color: 'done',
-        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Brynn',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Brynn Vetrano',
         detail: {
           summary: 'Write an ethical reflection for the Big Data course. Similar to Responsible AI but framed around data practices.',
           steps: [
@@ -1041,7 +1041,7 @@ const sections = [
       },
       {
         label: 'README finalize (#1)', tags: ['AI'], color: 'done',
-        start: '2026-04-10', end: '2026-04-12', done: true, owner: 'Anmol',
+        start: '2026-04-10', end: '2026-04-12', done: true, owner: 'Anmol Motwani',
         detail: {
           summary: 'Final pass on the GitHub README. Add screenshots, finalize references, polish writing.',
           steps: [
@@ -1060,7 +1060,7 @@ const sections = [
       },
       {
         label: 'Dry run: AI poster presentation', tags: ['AI'], color: 'ai',
-        start: '2026-04-13', end: '2026-04-14', done: false, owner: 'D+D Lead',
+        start: '2026-04-13', end: '2026-04-14', done: false, owner: 'JR Jones',
         detail: {
           summary: 'Practice the poster presentation with the full team. Each member rehearses their section. Time the demo.',
           steps: [
@@ -1079,7 +1079,7 @@ const sections = [
       },
       {
         label: 'Big Data slide deck (#9)', tags: ['BD'], color: 'done',
-        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'JR Jones + Steven',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'JR Jones + Steven Alvarado',
         detail: {
           summary: 'Create the slide deck for the April 17 Big Data course presentation.',
           steps: [
@@ -1102,7 +1102,7 @@ const sections = [
       },
       {
         label: 'Dry run: Big Data presentation', tags: ['BD'], color: 'bd',
-        start: '2026-04-15', end: '2026-04-16', done: false, owner: 'D+D Lead',
+        start: '2026-04-15', end: '2026-04-16', done: false, owner: 'JR Jones',
         detail: {
           summary: 'Practice the Big Data presentation. Focus on the pipeline demo and technical depth.',
           steps: [
@@ -1121,7 +1121,7 @@ const sections = [
       },
       {
         label: 'Data dictionary (#14)', tags: ['HR'], color: 'hr',
-        start: '2026-04-14', end: '2026-04-18', done: false, owner: 'R+C Lead',
+        start: '2026-04-14', end: '2026-04-18', done: false, owner: 'Brynn Vetrano',
         detail: {
           summary: 'Document every field in every Excel file for HR. Must be usable by a non-technical audience.',
           steps: [
@@ -1140,7 +1140,7 @@ const sections = [
       },
       {
         label: 'User guide / SOP (#15)', tags: ['HR'], color: 'hr',
-        start: '2026-04-14', end: '2026-04-18', done: false, owner: 'R+C Lead',
+        start: '2026-04-14', end: '2026-04-18', done: false, owner: 'Brynn Vetrano',
         detail: {
           summary: 'Step-by-step guide for HR to use the classification tool. Must be usable by a non-technical HR professional on day one.',
           steps: [
@@ -1162,7 +1162,7 @@ const sections = [
       },
       {
         label: 'Validation report (#16)', tags: ['HR'], color: 'hr',
-        start: '2026-04-14', end: '2026-04-18', done: false, owner: 'Steven',
+        start: '2026-04-14', end: '2026-04-18', done: false, owner: 'Steven Alvarado',
         detail: {
           summary: 'Document test results from the 10+ position validation exercise. This is evidence that the tool works.',
           steps: [
