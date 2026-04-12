@@ -96,8 +96,6 @@
   .domain-design { border-left: 4px solid #E67E22; }
   .domain-tech { border-left: 4px solid #8E44AD; }
   .domain-shared { border-left: 4px solid #95a5a6; }
-  .start-now { background: #fffde7 !important; }
-  .start-badge { display:inline-block; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:#28a745; color:#fff; font-weight:600; margin-left:4px; }
   .owner { font-size: 0.7rem; color: #888; margin-top: 4px; font-style: italic; }
   .section-label {
     font-size: 0.72rem; font-weight: 600; color: #888;
@@ -121,25 +119,20 @@
 
 <h1>GRIFFIN Project Kanban</h1>
 <p class="subtitle">W&amp;M HR Position Classification &amp; Pay Matching Tool</p>
-<p class="date">Updated: March 31, 2026 | AI poster: April 15 | Big Data presentation: April 17</p>
+<p class="date">Updated: April 12, 2026 | AI poster: April 15 | Big Data presentation: April 17</p>
 
 <div class="legend">
   <div class="legend-item"><span class="legend-dot" style="background:var(--ai)"></span> AI Course (TP3)</div>
   <div class="legend-item"><span class="legend-dot" style="background:var(--bigdata)"></span> Big Data (5722)</div>
   <div class="legend-item"><span class="legend-dot" style="background:var(--shared)"></span> Shared</div>
   <div class="legend-item"><span class="legend-dot" style="background:var(--hr)"></span> HR Handoff</div>
-  <div class="legend-item"><span class="legend-dot" style="background:#2E86C1"></span> Infrastructure</div>
-  <div class="legend-item"><span class="legend-dot" style="background:#27AE60"></span> Research + Content</div>
-  <div class="legend-item"><span class="legend-dot" style="background:#E67E22"></span> Design + Delivery</div>
-  <div class="legend-item"><span class="legend-dot" style="background:#8E44AD"></span> Technical (Steven)</div>
-  <div class="legend-item"><span class="legend-dot" style="background:#fffde7;border:1px solid #f9a825"></span> Start NOW</div>
 </div>
 
 <div class="board">
 
   <!-- ==================== DONE ==================== -->
   <div class="column col-done">
-    <div class="column-header">Done <span class="count">(22)</span></div>
+    <div class="column-header">Done <span class="count">(33)</span></div>
 
     <div class="section-label">Workstream 1: Data Collection</div>
 
@@ -262,7 +255,7 @@
 
     <div class="card">
       <div class="card-title">A1: Environment setup (conda)</div>
-      <div class="card-desc">Conda env "griffin" created via Anaconda. Python 3.11, 16 packages. Kernel registered as "GRIFFIN (conda)". H2O deferred -- follow Big Data lab process.</div>
+      <div class="card-desc">Conda env "griffin" created via Anaconda. Python 3.11, 16 packages. Kernel registered as "GRIFFIN (conda)".</div>
       <div class="card-meta">
         <span class="tag tag-shared">Shared</span>
         <span class="tag tag-ws3">WS3</span>
@@ -271,7 +264,7 @@
 
     <div class="card">
       <div class="card-title">A2: Workday scrape (CQM orchestrated)</div>
-      <div class="card-desc">150 postings fetched via JSON API, 103 staff retained, 47 faculty excluded. Labels: comp_grade (100%), job_profile_code (95%), job_family (97%). CQM Three-Phase, 4 checkpoints, 36 criteria -- all passed.</div>
+      <div class="card-desc">150 postings fetched via JSON API, 103 staff retained, 47 faculty excluded. CQM Three-Phase, 4 checkpoints, 36 criteria -- all passed.</div>
       <div class="card-meta">
         <span class="tag tag-ws1">WS1</span>
         <span class="tag tag-bd">Big Data</span>
@@ -280,7 +273,7 @@
 
     <div class="card">
       <div class="card-title">A3: Label stripping + censored PDs</div>
-      <div class="card-desc">Classification fields stripped from PD text. Zero label leakage (7-pattern scan, 15 spot-checks). Outputs: workday_training.csv (103 rows), workday_postings.csv, workday_exclusions.csv.</div>
+      <div class="card-desc">Zero label leakage (7-pattern scan, 15 spot-checks). Outputs: workday_training.csv (103 rows), workday_postings.csv, workday_exclusions.csv.</div>
       <div class="card-meta">
         <span class="tag tag-ws1">WS1</span>
         <span class="tag tag-shared">Shared</span>
@@ -289,7 +282,7 @@
 
     <div class="card">
       <div class="card-title">A4: Feature engineering (Apr 6)</div>
-      <div class="card-desc">15 regex-based features from 103 censored PDs. 30 W&amp;M job families mapped to 7 DHRM occupational families. Output: workday_features.csv (100 rows x 15 features).</div>
+      <div class="card-desc">15 regex-based features from 103 censored PDs. 30 W&amp;M job families mapped to 7 DHRM occupational families.</div>
       <div class="card-meta">
         <span class="tag tag-bd">Big Data</span>
         <span class="tag tag-ws3">WS3</span>
@@ -298,7 +291,7 @@
 
     <div class="card">
       <div class="card-title">A5: H2O AutoML training (Apr 6)</div>
-      <div class="card-desc">80 models (GBM, DRF, GLM, DL, ensembles). 5-fold stratified CV. Best GBM: logloss 0.95, 91% on majority class, top-3 near-perfect. SHAP, PDP, variable importance. OpenJDK 25 installed.</div>
+      <div class="card-desc">80 models (GBM, DRF, GLM, DL, ensembles). 5-fold stratified CV. Best GBM: logloss 0.95, top-3 near-perfect. SHAP, PDP, variable importance.</div>
       <div class="card-meta">
         <span class="tag tag-bd">Big Data</span>
         <span class="tag tag-ws3">WS3</span>
@@ -307,7 +300,7 @@
 
     <div class="card">
       <div class="card-title">B1: LangChain multi-agent PoC (Apr 6)</div>
-      <div class="card-desc">767-line script. 3 agents (Classifier, Pay Matcher, Orchestrator), 5 custom tools, 2 external APIs, memory, streaming. CQM 21/21 criteria passed. Assignment 5 deliverable.</div>
+      <div class="card-desc">767-line script. 3 agents, 5 custom tools, 2 external APIs, memory, streaming. CQM 21/21 criteria passed.</div>
       <div class="card-meta">
         <span class="tag tag-ai">AI Course</span>
         <span class="tag tag-ws3">WS3</span>
@@ -316,7 +309,7 @@
 
     <div class="card">
       <div class="card-title">B2: skill.md + template files (Apr 6)</div>
-      <div class="card-desc">Classifier skill + Pay Matcher skill. Typed parameters, step-by-step instructions. Zipped for Gradescope.</div>
+      <div class="card-desc">Classifier skill + Pay Matcher skill. Typed parameters, step-by-step instructions.</div>
       <div class="card-meta">
         <span class="tag tag-ai">AI Course</span>
       </div>
@@ -324,10 +317,114 @@
 
     <div class="card">
       <div class="card-title">B3: Design rationale report (Apr 6)</div>
-      <div class="card-desc">1-page report: 3 agents, 5 tools, orchestration pattern, GRIFFIN Layer 3 integration. ~700 words.</div>
+      <div class="card-desc">1-page report: 3 agents, 5 tools, orchestration pattern, GRIFFIN Layer 3 integration.</div>
       <div class="card-meta">
         <span class="tag tag-ai">AI Course</span>
       </div>
+    </div>
+
+    <div class="section-label">AI Course Sprint (Apr 12)</div>
+
+    <div class="card domain-infra">
+      <div class="card-title">#1 GitHub README (Apr 12)</div>
+      <div class="card-desc">Full README with architecture diagram, author bios, responsible AI section, references.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+      </div>
+      <div class="owner">Anmol</div>
+    </div>
+
+    <div class="card domain-infra">
+      <div class="card-title">#2 GitHub Projects kanban board (Apr 12)</div>
+      <div class="card-desc">Board created with issues, active use throughout semester.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+      </div>
+      <div class="owner">Anmol</div>
+    </div>
+
+    <div class="card domain-tech">
+      <div class="card-title">#3 Streamlit web app (Apr 12)</div>
+      <div class="card-desc">Dual ML+AI classification pipeline. Fast/Full modes, 3 ranked cards, pay matching, explanations.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+        <span class="tag tag-ws3">WS3</span>
+      </div>
+      <div class="owner">Anmol + Steven</div>
+    </div>
+
+    <div class="card domain-design">
+      <div class="card-title">#4 Conference poster (Apr 12)</div>
+      <div class="card-desc">36x48 HTML poster with SHAP visualizations, architecture diagram, responsible AI section.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+      </div>
+      <div class="owner">JR Jones</div>
+    </div>
+
+    <div class="card domain-research">
+      <div class="card-title">#6 Responsible AI section (Apr 12)</div>
+      <div class="card-desc">Standalone report + slide 12 + README section. Bias, HITL, privacy, explainability, transparency.</div>
+      <div class="card-meta">
+        <span class="tag tag-ai">AI Course</span>
+      </div>
+      <div class="owner">Brynn</div>
+    </div>
+
+    <div class="section-label">Big Data Sprint (Apr 12)</div>
+
+    <div class="card domain-tech">
+      <div class="card-title">#7 GCP Cloud SQL (Apr 12)</div>
+      <div class="card-desc">cloud_sql_config.py with graceful degradation (SQLite fallback). Evidence of GCP usage.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+      <div class="owner">Steven</div>
+    </div>
+
+    <div class="card domain-tech">
+      <div class="card-title">#8 Visualizations (Apr 12)</div>
+      <div class="card-desc">SHAP plots, variable importance, PDP in Notebook 5.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+      <div class="owner">Steven</div>
+    </div>
+
+    <div class="card domain-design">
+      <div class="card-title">#9 Slide deck (Apr 12)</div>
+      <div class="card-desc">13 slides with W&amp;M branding, SHAP images, architecture diagram.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+      <div class="owner">JR Jones + Steven</div>
+    </div>
+
+    <div class="card domain-research">
+      <div class="card-title">#10 Ethical reflection (Apr 12)</div>
+      <div class="card-desc">reports/ethical_reflection.md -- 6 dimensions: data sourcing, scraping ethics, classification bias, LLM disclosure, privacy, human oversight.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+      <div class="owner">Brynn</div>
+    </div>
+
+    <div class="card domain-design">
+      <div class="card-title">#11 Project folder structure (Apr 12)</div>
+      <div class="card-desc">Clean semantic directory structure: data/, notebooks/, reports/, ppt/, app/, docs/, archive/.</div>
+      <div class="card-meta">
+        <span class="tag tag-bd">Big Data</span>
+      </div>
+      <div class="owner">JR Jones</div>
+    </div>
+
+    <div class="card domain-tech">
+      <div class="card-title">#12 Pay estimation prompt (Apr 12)</div>
+      <div class="card-desc">Midpoint-as-ceiling W&amp;M grade matching with weighted math for blended roles.</div>
+      <div class="card-meta">
+        <span class="tag tag-shared">Shared</span>
+      </div>
+      <div class="owner">Steven</div>
     </div>
 
     <div class="section-label">Project Planning &amp; Client</div>
@@ -345,103 +442,30 @@
 
   <!-- ==================== IN PROGRESS ==================== -->
   <div class="column col-progress">
-    <div class="column-header">In Progress <span class="count">(0)</span></div>
+    <div class="column-header">In Progress <span class="count">(2)</span></div>
 
-    <p style="color:#888; font-size:0.82rem; text-align:center; padding:20px 10px;">No tasks currently in progress.<br>Next up: A4 Feature Engineering.</p>
+    <div class="card domain-research">
+      <div class="card-title">#5 Research paper citation</div>
+      <div class="card-desc">Academic paper &lt; 3 years old on LLM classification, agentic AI, or HR automation. Must be discussed verbally and on poster.</div>
+      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
+      <div class="owner">Brynn</div>
+    </div>
+
+    <div class="card domain-shared">
+      <div class="card-title">#13 Validate against 10+ positions</div>
+      <div class="card-desc">4-5 tested so far. Each person tests 2-3 PDs through pipeline. Need 5-6 more for full coverage.</div>
+      <div class="card-meta"><span class="tag tag-shared">Shared</span></div>
+      <div class="owner">Everyone</div>
+    </div>
 
   </div>
 
-  <!-- ==================== TO DO (organized by domain) ==================== -->
+  <!-- ==================== TO DO ==================== -->
   <div class="column col-todo">
-    <div class="column-header">To Do <span class="count">(15)</span></div>
+    <div class="column-header">To Do <span class="count">(3)</span></div>
 
-    <div class="section-label" style="color:#2E86C1">Domain 1: Infrastructure Lead</div>
+    <div class="section-label">HR Handoff Package</div>
 
-    <div class="card domain-infra start-now">
-      <div class="card-title">#2 GitHub Projects kanban board <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Migrate this task list to GitHub Projects. Must show active use during semester.</div>
-      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
-    </div>
-    <div class="card domain-infra start-now">
-      <div class="card-title">#11 Project folder restructure <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Organize into data/, notebooks/, reports/, ppt/ per Big Data rubric.</div>
-      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
-    </div>
-    <div class="card domain-infra start-now">
-      <div class="card-title">#7 Deploy to Google Cloud SQL <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Migrate SQLite schema to Cloud SQL (MySQL). Data populates later.</div>
-      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
-    </div>
-    <div class="card domain-infra start-now">
-      <div class="card-title">#1 GitHub README <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Draft structure, add author bios + GitHub links, visuals, responsible AI section, references.</div>
-      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
-    </div>
-
-    <div class="section-label" style="color:#27AE60">Domain 2: Research + Content Lead</div>
-
-    <div class="card domain-research start-now">
-      <div class="card-title">#5 Research paper citation <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Find 1+ academic paper (&lt; 3 years old) on LLM classification, agentic AI, or HR automation.</div>
-      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
-    </div>
-    <div class="card domain-research start-now">
-      <div class="card-title">#6 Responsible AI section <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Bias risks, human-in-the-loop, data privacy (no PII in prompts), explainability.</div>
-      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
-    </div>
-    <div class="card domain-research start-now">
-      <div class="card-title">#10 Ethical reflection <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Public DHRM data, scraping ethics (rate limiting, robots.txt), classification bias, responsible LLM use.</div>
-      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
-    </div>
-
-    <div class="section-label" style="color:#E67E22">Domain 3: Design + Delivery Lead</div>
-
-    <div class="card domain-design start-now">
-      <div class="card-title">#4 Conference poster layout <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Design poster template. Problem, architecture, demo screenshots, responsible AI, research paper. April 15.</div>
-      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
-    </div>
-    <div class="card domain-design start-now">
-      <div class="card-title">#9 Big Data slide deck structure <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Outline all sections: problem, architecture, pipeline demo, findings, ethics, next steps. April 17.</div>
-      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
-    </div>
-    <div class="card domain-design">
-      <div class="card-title">Presentation rehearsal plan</div>
-      <div class="card-desc">Draft who presents what section, timing, Q&amp;A prep. All members must be actively engaged.</div>
-      <div class="card-meta"><span class="tag tag-shared">Shared</span></div>
-    </div>
-
-    <div class="section-label" style="color:#8E44AD">Domain 4: Technical Lead -- Steven</div>
-
-    <div class="card domain-tech start-now">
-      <div class="card-title">#12 Pay estimation prompt <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Compensation prompt: takes classification + salary data, produces weighted pay math for blended roles.</div>
-      <div class="card-meta"><span class="tag tag-shared">Shared</span></div>
-      <div class="owner">Steven</div>
-    </div>
-    <div class="card domain-tech">
-      <div class="card-title">#3 Streamlit web app <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Anmol has working demo. Needs integration: wire to LangChain backend + H2O model loader. Paste PD -> classification + pay + explanation.</div>
-      <div class="card-meta"><span class="tag tag-ai">AI Course</span></div>
-      <div class="owner">Anmol + Steven</div>
-    </div>
-    <div class="card domain-tech">
-      <div class="card-title">#8 Visualizations</div>
-      <div class="card-desc">matplotlib/seaborn/plotly: SHAP, PDP, variable importance, family distributions.</div>
-      <div class="card-meta"><span class="tag tag-bd">Big Data</span></div>
-      <div class="owner">Steven (after A5)</div>
-    </div>
-
-    <div class="section-label" style="color:#95a5a6">Shared (Everyone)</div>
-
-    <div class="card domain-shared start-now">
-      <div class="card-title">#13 Validate against 10+ positions <span class="start-badge">START NOW</span></div>
-      <div class="card-desc">Each person tests 2-3 PDs through MVP prompt + Excel files. Document accuracy.</div>
-      <div class="card-meta"><span class="tag tag-shared">Shared</span></div>
-    </div>
     <div class="card domain-shared">
       <div class="card-title">#14 Data dictionary</div>
       <div class="card-desc">Every field documented. After validation.</div>
@@ -456,6 +480,7 @@
       <div class="card-title">#16 Validation report</div>
       <div class="card-desc">Accuracy, edge cases, recommendations. After validation.</div>
       <div class="card-meta"><span class="tag tag-hr">HR Handoff</span></div>
+      <div class="owner">Steven</div>
     </div>
 
   </div>
@@ -492,7 +517,7 @@
 
 <div class="footer">
   GRIFFIN (Government Role Identification and Financial Framework Integration Network) | BUAD 5742 + BUAD 5722 | Spring 2026<br>
-  Blue-bordered cards = team members can pick up. Drag to GitHub Projects for live tracking.
+  Team: Steven (pipeline + app), Anmol (README + repo), JR Jones (poster + slides), Brynn (ethics + research)
 </div>
 
 </body>

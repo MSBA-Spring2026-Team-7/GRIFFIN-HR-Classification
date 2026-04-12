@@ -283,7 +283,7 @@
 <body>
 
 <h1>GRIFFIN Project Schedule</h1>
-<p class="subtitle">Full project timeline: Feb 24 - April 18, 2026 | Updated April 7, 2026 | Click tasks to mark complete. Critical path auto-highlights.</p>
+<p class="subtitle">Full project timeline: Feb 24 - April 18, 2026 | Updated April 12, 2026 | Click tasks to mark complete. Critical path auto-highlights.</p>
 <p class="hint">Click any task row to see details, steps, and acceptance criteria.</p>
 
 <div class="legend">
@@ -718,8 +718,8 @@ const sections = [
         }
       },
       {
-        label: 'Deploy to Google Cloud SQL (#7)', tags: ['BD'], color: 'bd',
-        start: '2026-04-01', end: '2026-04-05', done: false, owner: 'Infra Lead',
+        label: 'Deploy to Google Cloud SQL (#7)', tags: ['BD'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Steven',
         detail: {
           summary: 'Migrate from SQLite to Google Cloud SQL (MySQL). This is critical for the Big Data rubric -- "appropriate use of cloud services" is a key criterion.',
           steps: [
@@ -740,8 +740,8 @@ const sections = [
         }
       },
       {
-        label: 'GitHub repo + README draft (#1)', tags: ['AI'], color: 'ai',
-        start: '2026-04-01', end: '2026-04-05', done: false, owner: 'Infra Lead',
+        label: 'GitHub repo + README draft (#1)', tags: ['AI'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Anmol',
         detail: {
           summary: 'Create the GitHub repository and draft the README. The rubric grades both "repo is organized" (7%) and "references cited properly" (1%).',
           steps: [
@@ -762,8 +762,8 @@ const sections = [
         }
       },
       {
-        label: 'GitHub Projects board setup (#2)', tags: ['AI'], color: 'ai',
-        start: '2026-04-01', end: '2026-04-03', done: false, owner: 'Infra Lead',
+        label: 'GitHub Projects board setup (#2)', tags: ['AI'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Anmol',
         detail: {
           summary: 'Create a GitHub Projects board and populate it with all tasks. The rubric grades "kanban board is visually organized" (7%).',
           steps: [
@@ -783,7 +783,7 @@ const sections = [
       },
       {
         label: 'Research paper search (#5)', tags: ['AI'], color: 'ai',
-        start: '2026-04-01', end: '2026-04-05', done: false, owner: 'R+C Lead',
+        start: '2026-04-01', end: '2026-04-14', done: false, owner: 'Brynn',
         detail: {
           summary: 'Find at least one high-quality academic research paper (< 3 years old) relevant to the project. Must be discussed verbally and appear on the poster.',
           steps: [
@@ -802,8 +802,8 @@ const sections = [
         }
       },
       {
-        label: 'Streamlit app (#3)', tags: ['AI'], color: 'ai',
-        start: '2026-04-11', end: '2026-04-14', done: false, owner: 'Steven',
+        label: 'Streamlit app (#3)', tags: ['AI'], color: 'done',
+        start: '2026-04-11', end: '2026-04-12', done: true, owner: 'Anmol + Steven',
         detail: {
           summary: 'Build the basic Streamlit app structure: text input for position descriptions, placeholder for LLM output, and reference data display.',
           steps: [
@@ -822,8 +822,8 @@ const sections = [
         }
       },
       {
-        label: 'Pay estimation prompt (#12)', tags: ['Shared'], color: 'shared',
-        start: '2026-04-01', end: '2026-04-05', done: false, owner: 'Steven',
+        label: 'Pay estimation prompt (#12)', tags: ['Shared'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Steven',
         detail: {
           summary: 'Iterate the v1 classification prompt template. Test against the Assistant Controller example. Ensure it produces the correct output structure.',
           steps: [
@@ -848,8 +848,8 @@ const sections = [
     name: 'Week 2: Build (Apr 3 - Apr 9)',
     tasks: [
       {
-        label: 'Streamlit: LLM integration (#3)', tags: ['AI'], color: 'ai',
-        start: '2026-04-11', end: '2026-04-14', done: false, owner: 'Steven',
+        label: 'Streamlit: LLM integration (#3)', tags: ['AI'], color: 'done',
+        start: '2026-04-11', end: '2026-04-12', done: true, owner: 'Steven',
         detail: {
           summary: 'Connect the Streamlit app to an LLM API. The app should send the position description + reference data as context and display the structured classification result.',
           steps: [
@@ -869,8 +869,8 @@ const sections = [
         }
       },
       {
-        label: 'Streamlit: deploy to URL (#3)', tags: ['AI'], color: 'ai',
-        start: '2026-04-13', end: '2026-04-14', done: false, owner: 'Steven',
+        label: 'Streamlit: deploy to URL (#3)', tags: ['AI'], color: 'done',
+        start: '2026-04-12', end: '2026-04-12', done: true, owner: 'Steven',
         detail: {
           summary: 'Deploy the Streamlit app to a public URL so the team can demo it live at the poster presentation.',
           steps: [
@@ -889,8 +889,8 @@ const sections = [
         }
       },
       {
-        label: 'Notebook visualizations (#8)', tags: ['BD'], color: 'bd',
-        start: '2026-04-08', end: '2026-04-12', done: false, owner: 'Steven',
+        label: 'Notebook visualizations (#8)', tags: ['BD'], color: 'done',
+        start: '2026-04-08', end: '2026-04-12', done: true, owner: 'Steven',
         detail: {
           summary: 'Add data visualizations to the Jupyter notebook using matplotlib, seaborn, or plotly. The rubric requires "relevant charts, dashboards, or plots."',
           steps: [
@@ -910,8 +910,8 @@ const sections = [
         }
       },
       {
-        label: 'Pay estimation prompt (#12) [dup]', tags: ['Shared'], color: 'shared',
-        start: '2026-04-01', end: '2026-04-05', done: false, owner: 'Steven',
+        label: 'Pay estimation prompt (#12) [dup]', tags: ['Shared'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Steven',
         detail: {
           summary: 'Create a separate prompt template for compensation estimation. Takes a classification result + salary data and produces a pay recommendation with math.',
           steps: [
@@ -932,7 +932,7 @@ const sections = [
       },
       {
         label: 'Validate 10+ W&M positions (#13)', tags: ['Shared'], color: 'shared',
-        start: '2026-04-01', end: '2026-04-12', done: false, owner: 'Everyone',
+        start: '2026-04-01', end: '2026-04-14', done: false, owner: 'Everyone',
         detail: {
           summary: 'Find 10+ real W&M job postings and run each through the classification pipeline. Compare expected vs. actual results. This is the evidence that the tool works.',
           steps: [
@@ -953,8 +953,8 @@ const sections = [
         }
       },
       {
-        label: 'Responsible AI write-up (#6)', tags: ['AI'], color: 'ai',
-        start: '2026-04-01', end: '2026-04-05', done: false, owner: 'R+C Lead',
+        label: 'Responsible AI write-up (#6)', tags: ['AI'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Brynn',
         detail: {
           summary: 'Document responsible AI considerations. Required in the README, on the poster, and ready for verbal discussion at Q&A.',
           steps: [
@@ -974,8 +974,8 @@ const sections = [
         }
       },
       {
-        label: 'Ethical reflection (#10)', tags: ['BD'], color: 'bd',
-        start: '2026-04-01', end: '2026-04-05', done: false, owner: 'R+C Lead',
+        label: 'Ethical reflection (#10)', tags: ['BD'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'Brynn',
         detail: {
           summary: 'Write an ethical reflection for the Big Data course. Similar to Responsible AI but framed around data practices.',
           steps: [
@@ -993,8 +993,8 @@ const sections = [
         }
       },
       {
-        label: 'Project folder structure (#11)', tags: ['BD'], color: 'bd',
-        start: '2026-04-01', end: '2026-04-02', done: false, owner: 'Infra Lead',
+        label: 'Project folder structure (#11)', tags: ['BD'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'JR Jones',
         detail: {
           summary: 'Reorganize the project into the folder structure required by the Big Data rubric.',
           steps: [
@@ -1018,8 +1018,8 @@ const sections = [
     name: 'Production + Present (Apr 11 - Apr 18)',
     tasks: [
       {
-        label: 'Poster design + content (#4)', tags: ['AI'], color: 'ai',
-        start: '2026-04-01', end: '2026-04-12', done: false, owner: 'D+D Lead',
+        label: 'Poster design + content (#4)', tags: ['AI'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'JR Jones',
         detail: {
           summary: 'Create a conference-style poster for the April 15 presentation. Three awards given: Agentic Design Excellence, Innovation, Communication Excellence.',
           steps: [
@@ -1040,8 +1040,8 @@ const sections = [
         }
       },
       {
-        label: 'README finalize (#1)', tags: ['AI'], color: 'ai',
-        start: '2026-04-10', end: '2026-04-13', done: false, owner: 'Infra Lead',
+        label: 'README finalize (#1)', tags: ['AI'], color: 'done',
+        start: '2026-04-10', end: '2026-04-12', done: true, owner: 'Anmol',
         detail: {
           summary: 'Final pass on the GitHub README. Add screenshots, finalize references, polish writing.',
           steps: [
@@ -1078,8 +1078,8 @@ const sections = [
         }
       },
       {
-        label: 'Big Data slide deck (#9)', tags: ['BD'], color: 'bd',
-        start: '2026-04-01', end: '2026-04-15', done: false, owner: 'D+D Lead',
+        label: 'Big Data slide deck (#9)', tags: ['BD'], color: 'done',
+        start: '2026-04-01', end: '2026-04-12', done: true, owner: 'JR Jones + Steven',
         detail: {
           summary: 'Create the slide deck for the April 17 Big Data course presentation.',
           steps: [
