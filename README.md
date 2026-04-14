@@ -1,12 +1,12 @@
 # GRIFFIN
 
-**AI-Powered HR Position Classification & Pay Tool for William & Mary**
+**AI-Powered HR Position Classification & Pay Tool for Public University**
 
 | | |
 |---|---|
 | **Course** | BUAD 5722 Big Data Analytics / BUAD 5742 AI -- Spring 2026 |
 | **Team** | Steven Alvarado, Anmol Motwani, JR Jones, Brynn Vetrano |
-| **Built for** | William & Mary Human Resources |
+| **Built for** | A Public University |
 | **Acronym** | Government Role Identification and Financial Framework Integration Network |
 
 > Built with CQM (Construction Quality Management) orchestration framework for structured quality control.
@@ -32,7 +32,7 @@
 
 ## Project Overview
 
-William & Mary's Human Resources department manages over 500 position descriptions (PDs) across dozens of occupational families. Classifying each PD into the correct Virginia DHRM career group and matching it to an appropriate W&M pay grade is a manual, time-intensive process that can produce inconsistent results when done by different reviewers.
+A Public University's Human Resources department manages over 500 position descriptions (PDs) across dozens of occupational families. Classifying each PD into the correct Virginia DHRM career group and matching it to an appropriate W&M pay grade is a manual, time-intensive process that can produce inconsistent results when done by different reviewers. As we are William & Mary Students, we used our school as a test case for our efforts.
 
 GRIFFIN automates this classification using a **dual-method approach**:
 
@@ -361,6 +361,6 @@ All credentials are managed through `.env` files excluded from version control. 
 
 ## Acknowledgments
 
-GRIFFIN was built for William & Mary's Human Resources department as a joint deliverable for BUAD 5722 (Big Data Analytics) and BUAD 5742 (AI), Spring 2026, at the Mason School of Business.
+GRIFFIN was built for A university's Human Resources department as a joint deliverable for BUAD 5722 (Big Data Analytics) and BUAD 5742 (AI), Spring 2026, at the Mason School of Business.
 
 We thank our professors for their guidance on responsible AI development and practical machine learning, and William & Mary HR for the domain context that shaped this tool.
