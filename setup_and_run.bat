@@ -1,7 +1,7 @@
 @echo off
 echo ========================================
 echo  GRIFFIN - HR Classification Tool Setup
-echo  William ^& Mary - Team 7
+echo  Team 7 - Spring 2026
 echo ========================================
 echo.
 
@@ -18,7 +18,7 @@ REM Check if griffin env exists
 conda env list | findstr "griffin" >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [SETUP] Creating griffin conda environment...
-    conda env create -f environment.yml
+    conda env create -f environment-local.yml
     if %ERRORLEVEL% neq 0 (
         echo [ERROR] Failed to create conda environment.
         pause
@@ -31,6 +31,10 @@ if %ERRORLEVEL% neq 0 (
 REM Activate
 echo [SETUP] Activating griffin environment...
 call conda activate griffin
+
+REM Safety net: ensure app runtime dependencies are installed even if environment-local.yml drifts
+echo [SETUP] Ensuring Streamlit Cloud runtime deps are installed (safety net)...
+pip install -r requirements.txt --quiet 2>nul
 
 REM Install pip packages that might be missing
 echo [SETUP] Ensuring pip packages are installed...
@@ -46,7 +50,8 @@ if not exist ".env" (
         echo ========================================
         echo  A .env file has been created from .env.example
         echo  You MUST edit .env and add your Google Gemini API key:
-        echo    GOOGLE_API_KEY=your-actual-key-here
+        echo    GEMINI_API_KEY=your-actual-key-here
+        echo  (GOOGLE_API_KEY is also accepted for backward compatibility.)
         echo.
         echo  Without the API key, only Fast Mode (ML) will work.
         echo  Full Analysis mode requires the Gemini API.

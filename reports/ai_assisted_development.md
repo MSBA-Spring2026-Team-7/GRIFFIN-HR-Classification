@@ -103,7 +103,7 @@ Throughout this project, AI functioned as an **execution partner**, not a decisi
 
 | Dimension | Human (Team) | AI (Claude Code) |
 |---|---|---|
-| Problem definition | Team identified W&M HR's classification challenge | AI helped articulate it for different audiences |
+| Problem definition | Team identified the client (a public university HR department)'s classification challenge | AI helped articulate it for different audiences |
 | Technical approach | Team chose dual ML + AI method | AI implemented the architecture |
 | Design decisions | Team chose W&M colors, layout, display format | AI generated options, team selected |
 | Quality standards | Team set the bar ("respect the grade") | AI executed CQM framework for verification |

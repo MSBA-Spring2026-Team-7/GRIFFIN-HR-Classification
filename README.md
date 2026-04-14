@@ -11,6 +11,8 @@
 
 **Repository:** [MSBA-Spring2026-Team-7/GRIFFIN-HR-Classification](https://github.com/MSBA-Spring2026-Team-7/GRIFFIN-HR-Classification)
 
+**Project Board:** [GitHub Projects Kanban](https://github.com/orgs/MSBA-Spring2026-Team-7/projects/1)
+
 | | |
 |---|---|
 | **Course** | BUAD 5742 — Artificial Intelligence (Spring 2026) |
@@ -212,7 +214,7 @@ git clone https://github.com/MSBA-Spring2026-Team-7/GRIFFIN-HR-Classification.gi
 cd GRIFFIN-HR-Classification
 
 # 2. Create the conda environment (installs Python 3.11, all packages, OpenJDK 11 for H2O)
-conda env create -f environment.yml
+conda env create -f environment-local.yml
 conda activate griffin
 
 # 3. Configure API keys
@@ -228,7 +230,7 @@ streamlit run app/streamlit_app.py
 
 Two dependency files are maintained in parallel:
 
-- **[`environment.yml`](environment.yml)** — the canonical conda environment for full local development. Includes everything needed to run the notebooks (H2O, SHAP, BeautifulSoup, pdfplumber, SQLAlchemy, pymysql, OpenJDK 11).
+- **[`environment-local.yml`](environment-local.yml)** — the canonical conda environment for full local development. Includes everything needed to run the notebooks (H2O, SHAP, BeautifulSoup, pdfplumber, SQLAlchemy, pymysql, OpenJDK 11). Named `environment-local.yml` (not `environment.yml`) so Streamlit Community Cloud falls back to `requirements.txt` instead of attempting a conda build that silently skips the pip subsection.
 - **[`requirements.txt`](requirements.txt)** — the trimmed pip dependency list used by Streamlit Community Cloud. Includes only what the deployed app imports (Streamlit, google-generativeai, pandas, numpy, openpyxl, scikit-learn, H2O). Notebook-only packages are intentionally excluded to keep the cloud build under the 1 GB free-tier memory cap.
 
 For full Streamlit Cloud deployment instructions, see **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
@@ -336,7 +338,7 @@ Barba, G., Corallo, A., Lazoi, M., & Lezzi, M. (2025). *Journal of Innovation & 
 - [Plotly](https://plotly.com/python/), [seaborn](https://seaborn.pydata.org/), [matplotlib](https://matplotlib.org/) — visualization
 - [OpenJDK 11](https://openjdk.org/) — JVM required by H2O
 
-Every technology listed here appears either in [`environment.yml`](environment.yml) (full local dev) or in [`requirements.txt`](requirements.txt) (Streamlit Cloud build).
+Every technology listed here appears either in [`environment-local.yml`](environment-local.yml) (full local dev) or in [`requirements.txt`](requirements.txt) (Streamlit Cloud build).
 
 ### Data Sources
 
@@ -377,6 +379,7 @@ This project is released under the **MIT License**. The research paper PDF in `d
 
 - **Live Demo:** [https://griffin-hr-classifier.streamlit.app](https://griffin-hr-classifier.streamlit.app)
 - **GitHub Repository:** [MSBA-Spring2026-Team-7/GRIFFIN-HR-Classification](https://github.com/MSBA-Spring2026-Team-7/GRIFFIN-HR-Classification)
+- **Project Kanban Board:** [https://github.com/orgs/MSBA-Spring2026-Team-7/projects/1](https://github.com/orgs/MSBA-Spring2026-Team-7/projects/1)
 - **Deployment Runbook:** [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
 - **Research Paper (local):** [`docs/research/research paper.pdf`](docs/research/research%20paper.pdf) — Barba et al. (2025), DOI: [10.1016/j.jik.2025.100780](https://doi.org/10.1016/j.jik.2025.100780)
 - **Grading Rubric (archived):** [`archive/references/Grading Rubric for AI Course.txt`](archive/references/Grading%20Rubric%20for%20AI%20Course.txt)

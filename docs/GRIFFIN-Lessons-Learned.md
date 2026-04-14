@@ -11,7 +11,7 @@
 
 ### The Mission
 
-GRIFFIN (Government Role Identification and Financial Framework Integration Network) is an AI-powered HR classification system built for William & Mary's Human Resources department. It scrapes Virginia's DHRM career group data, trains an H2O AutoML classifier on Workday position descriptions, and deploys a LangChain multi-agent system that can classify a new position into one of seven career group families and recommend an appropriate pay grade. The project spans two graduate courses (BUAD 5742 AI, BUAD 5722 Big Data) and a four-person team.
+GRIFFIN (Government Role Identification and Financial Framework Integration Network) is an AI-powered HR classification system built for a public university HR department. It scrapes Virginia's DHRM career group data, trains an H2O AutoML classifier on Workday position descriptions, and deploys a LangChain multi-agent system that can classify a new position into one of seven career group families and recommend an appropriate pay grade. The project spans two graduate courses (BUAD 5742 AI, BUAD 5722 Big Data) and a four-person team.
 
 ### The Problem
 

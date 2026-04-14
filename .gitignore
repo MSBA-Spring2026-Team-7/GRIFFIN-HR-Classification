@@ -44,3 +44,18 @@ h2o_logs/
 
 # Professor's class materials (not for repo)
 _temp holding/
+
+# Local process artifacts and history — stashed out of the public repo
+# on 2026-04-14 to present a polished final deliverable on GitHub.
+# Contents are retained on the Owner's local filesystem only.
+_local_archive/
+
+# Downloaded Streamlit Cloud build logs (ephemeral debug artifacts)
+logs-*.txt
+
+# Internal-audience presentation materials — targeted at in-person W&M
+# audiences (Big Data class, poster session), intentionally keep client
+# context. NOT for public GitHub. Demo_Photos/ stays tracked because
+# the screenshots show only the team-branded Streamlit UI.
+ppt/*.pptx
+ppt/*.html

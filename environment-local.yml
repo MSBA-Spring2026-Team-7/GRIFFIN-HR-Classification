@@ -1,6 +1,12 @@
-# GRIFFIN -- W&M HR Classification Project
-# Recreate: conda env create -f environment.yml
+# GRIFFIN -- HR Classification Project (local development environment)
+# Recreate: conda env create -f environment-local.yml
 # Activate: conda activate griffin
+#
+# This file is named environment-local.yml (not environment.yml) intentionally:
+# Streamlit Community Cloud auto-detects environment.yml and uses conda,
+# which silently skips pip subsections. The deployed app builds from
+# requirements.txt instead. Local notebook development continues to use
+# this file for full conda env reproduction.
 
 name: griffin
 channels:
@@ -41,6 +47,10 @@ dependencies:
     - pdfplumber
     - langchain
     - langchain-core
+    - langchain-google-genai
     - langgraph
     - google-generativeai
     - python-dotenv
+    - scikit-learn
+    - h2o
+    - numpy
