@@ -13,3 +13,11 @@ backgroundColor = "#115740"
 secondaryBackgroundColor = "#0D4230"
 textColor = "#FFFFFF"
 borderColor = "#C99700"
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false

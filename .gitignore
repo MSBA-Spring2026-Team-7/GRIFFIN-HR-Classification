@@ -7,14 +7,21 @@ models/
 # CQM sessions
 cqm-sessions/
 
-# API keys
+# ── Secrets ──────────────────────────────────────────────────
 .env
+.env.local
+.env.*
+!.env.example
 *.env
+.streamlit/secrets.toml
+**/secrets.toml
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
+.venv/
+.pytest_cache/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -31,6 +38,9 @@ desktop.ini
 # R
 .Rhistory
 .RData
+
+# H2O runtime
+h2o_logs/
 
 # Professor's class materials (not for repo)
 _temp holding/

@@ -20,7 +20,10 @@ import pandas as pd
 from feature_extraction import extract_features
 from ml_classifier import predict_occupational_family
 
-# ── Load API key from .env ──────────────────────────────────────────
+# ── Load API key (Streamlit Cloud Secrets first, then .env for local dev) ──
+# Cloud: reads from st.secrets["GEMINI_API_KEY"] configured in the
+# Streamlit Cloud Secrets UI. Local: reads from .env via python-dotenv.
+# Supports both GEMINI_API_KEY (canonical) and GOOGLE_API_KEY (legacy) names.
 try:
     from dotenv import load_dotenv
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +34,34 @@ except ImportError:
 
 import google.generativeai as genai
 
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
+
+def _load_gemini_api_key():
+    """Resolve the Gemini API key from Streamlit Secrets or environment.
+
+    Priority order:
+      1. st.secrets["GEMINI_API_KEY"]  (Streamlit Cloud deployment)
+      2. st.secrets["GOOGLE_API_KEY"]  (legacy name)
+      3. os.environ["GEMINI_API_KEY"]  (local .env, canonical)
+      4. os.environ["GOOGLE_API_KEY"]  (local .env, legacy)
+    Returns empty string if none found; callers decide how to handle.
+    """
+    # Try st.secrets (may raise FileNotFoundError if no secrets.toml locally)
+    for key_name in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+        try:
+            val = st.secrets.get(key_name)
+            if val:
+                return val
+        except (FileNotFoundError, KeyError, AttributeError):
+            pass
+    # Fall back to environment variables
+    for key_name in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+        val = os.environ.get(key_name, "")
+        if val:
+            return val
+    return ""
+
+
+GOOGLE_API_KEY = _load_gemini_api_key()
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -69,15 +99,33 @@ career_groups_df, roles_df, pay_bands_df, crosswalk_df, wm_grades_df = load_refe
 
 
 @st.cache_resource
-def load_ml_model():
-    """Pre-load ML models once on app start (H2O JVM boots here, not per-classification)."""
+def ensure_h2o_loaded():
+    """Lazy-load the H2O model on first user request.
+
+    Streamlit Cloud's free tier gives us ~1 GB RAM. Booting the H2O JVM at
+    app import would consume most of that budget before the user does
+    anything. This function is only called when the user clicks the
+    "Load ML reference model" button. If H2O is unavailable (JVM not
+    installed, OOM, etc.), the ml_classifier module falls back to sklearn.
+    """
     from ml_classifier import _get_h2o_model, _ensure_sklearn_model
-    _get_h2o_model()         # Boot JVM + load H2O model (cached in module)
-    _ensure_sklearn_model()  # Pre-train sklearn fallback if needed
+    model = _get_h2o_model()          # Boot JVM + load H2O model (cached in ml_classifier)
+    _ensure_sklearn_model()           # Pre-train sklearn fallback if needed
+    return model is not None
+
+
+@st.cache_resource
+def ensure_sklearn_only():
+    """Pre-warm only the sklearn fallback (cheap, no JVM)."""
+    from ml_classifier import _ensure_sklearn_model
+    _ensure_sklearn_model()
     return True
 
 
-load_ml_model()
+# Warm up sklearn fallback at boot (~50 MB). Do NOT boot H2O here — see
+# ensure_h2o_loaded() above. H2O loads only when the user explicitly opts in
+# via the "Load ML reference model" button in the sidebar.
+ensure_sklearn_only()
 
 
 # ============================================================
@@ -669,7 +717,12 @@ if run:
     else:
         # API key check — only required for Full Analysis mode
         if not GOOGLE_API_KEY and mode == "Full Analysis":
-            st.error("GOOGLE_API_KEY not found. Switch to Fast Mode or create a `.env` file in the project root with your key.")
+            st.error(
+                "Gemini API key not found. Set `GEMINI_API_KEY` in Streamlit "
+                "Cloud Secrets (cloud deploy) or in a `.env` file at the "
+                "project root (local dev). Switch to Fast Mode to run "
+                "ML-only classification without an API key."
+            )
             st.stop()
 
         jobs = [j.strip() for j in input_text.split("---") if j.strip()]
@@ -959,9 +1012,35 @@ if run:
 """, unsafe_allow_html=True)
 
 # ============================================================
-#  SIDEBAR — DATA EXPLORER
+#  SIDEBAR — DATA EXPLORER + ML MODEL CONTROL
 # ============================================================
 with st.sidebar:
+    # ── ML Reference Model (H2O AutoML) — lazy load ──
+    st.markdown("### ML Reference Model")
+    if st.session_state.get("h2o_loaded"):
+        st.success("H2O reference model loaded.")
+    else:
+        st.caption(
+            "The sklearn classifier runs by default. Click below to also "
+            "load the H2O AutoML reference model used in training "
+            "(~30s first load, adds ~400 MB RAM)."
+        )
+        if st.button("Load ML reference model", key="load_ml_reference_model"):
+            with st.spinner("Starting H2O cluster and loading GBM model..."):
+                try:
+                    ok = ensure_h2o_loaded()
+                    if ok:
+                        st.session_state["h2o_loaded"] = True
+                        st.success("H2O reference model loaded. Re-run classification to use it.")
+                    else:
+                        st.warning(
+                            "H2O unavailable in this environment. The app will "
+                            "continue to use the sklearn fallback classifier."
+                        )
+                except Exception as e:
+                    st.error(f"H2O load failed: {e}. Using sklearn fallback.")
+
+    st.markdown("---")
     st.markdown("### GRIFFIN Data Explorer")
     st.caption(f"{len(career_groups_df)} career groups | {len(roles_df)} roles | {len(pay_bands_df)} pay bands")
 

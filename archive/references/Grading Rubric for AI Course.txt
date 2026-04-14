@@ -1,0 +1,143 @@
+Code demo: Technically challenging, logically sound, and thoughtfully put together.
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
+Website demo: Creative and thoughtful use of vibe coding
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
+Poster is visually effective and covers everything that's required for the project.
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
+Github repo is organized and covers everything required for the project effectively.
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
+Github project kanban board is visually organized.
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
+Research paper is well chosen and well discussed verbally and on the poster.
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
+References are cited properly.
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
+The team articulated their problem statement, rationale, and overall approach effectively to the judges.
+9% of total grade
+
+Excellent
+13.5
+Satisfactory
+10.13
+Unsatisfactory
+6.75
+Poor
+3.38
+The team articulated the business opportunities and challenges of their project work clearly and effectively to the judges.
+9% of total grade
+
+Excellent
+13.5
+Satisfactory
+10.13
+Unsatisfactory
+6.75
+Poor
+3.38
+The team explained the technical components of their project clearly and effectively for a non-technical audience.
+12% of total grade
+
+Excellent
+18
+Satisfactory
+13.5
+Unsatisfactory
+9
+Poor
+4.5
+The team helped the judges learned a significant amount of new knowledge about AI.
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
+The team demonstrated creativity in their approach to their project topic.
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
+The team demonstrates effective team collaboration with all team members actively engaged in presentation and Q&A.
+7% of total grade
+
+Excellent
+10.5
+Satisfactory
+7.88
+Unsatisfactory
+5.25
+Poor
+2.63
