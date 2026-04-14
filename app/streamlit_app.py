@@ -382,7 +382,7 @@ st.set_page_config(
     page_title="GRIFFIN - W&M HR Classification Tool",
     page_icon="\U0001f3db\ufe0f",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 st.markdown("""
