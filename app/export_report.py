@@ -602,7 +602,16 @@ def _render_alternative_sections(doc, classification_result):
         return
 
     if alt_role:
-        card = _normalize_card(alt_role, badge="Alternative Role")
+        # The alternative role is in the SAME career group as the primary.
+        # Inject the primary's career group info so _normalize_card doesn't
+        # produce "? - ?" (the orchestrator omits these fields for alt_role).
+        primary = classification_result.get("primary", {})
+        enriched_alt_role = dict(alt_role)
+        if "career_group_code" not in enriched_alt_role:
+            enriched_alt_role["career_group_code"] = primary.get("career_group_code")
+        if "career_group_name" not in enriched_alt_role:
+            enriched_alt_role["career_group_name"] = primary.get("career_group_name")
+        card = _normalize_card(enriched_alt_role, badge="Alternative Role")
         _render_alternative_card(
             doc, card, "Alternative Match \u2014 Same Career Group")
 
