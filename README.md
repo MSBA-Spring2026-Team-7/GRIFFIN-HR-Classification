@@ -13,6 +13,10 @@
 
 **Project Board:** [GitHub Projects Kanban](https://github.com/orgs/MSBA-Spring2026-Team-7/projects/1)
 
+> **Start Here →** HR Directors: [`Implementation Playbook`](docs/GRIFFIN_Implementation_Playbook.docx) · IT Teams: [`Technical Transition Guide`](docs/GRIFFIN_Technical_Transition_Guide.docx) · HR Staff: [`User Guide`](docs/GRIFFIN_HR_User_Guide.pptx) · [`Quick Reference`](docs/GRIFFIN_Quick_Reference.docx)
+>
+> **More docs →** [`Data Dictionary`](docs/GRIFFIN_Data_Dictionary.xlsx) · [`Implementation Briefing Deck`](docs/GRIFFIN_Implementation_Briefing.pptx) · [`Technical Briefing Deck`](docs/GRIFFIN_Technical_Transition_Guide.pptx) · [`Data Onboarding Guide`](docs/client-data-onboarding/README.md) · [`Lessons Learned`](docs/GRIFFIN-Lessons-Learned.md)
+
 | | |
 |---|---|
 | **Course** | BUAD 5742 — Artificial Intelligence (Spring 2026) |
@@ -168,9 +172,11 @@ The censoring pipeline in notebook 3 is worth highlighting: it applies 30+ skip 
 
 Layer 2 uses a **counterbalance architecture**: H2O AutoML as the primary model, scikit-learn as an always-on fallback, and lazy loading to keep the Streamlit Cloud free-tier build under its 1 GB memory cap. In the free-tier Streamlit Cloud deployment, the scikit-learn GBM fallback serves classifications because the H2O JVM requires more RAM than the 1 GB budget allows; locally and on adequately provisioned infrastructure, H2O serves as the primary classifier with background JVM warmup.
 
-- **H2O AutoML.** 80 models trained over 5-fold stratified cross-validation. Best model: a Gradient Boosting Machine (GBM) with learning-rate annealing. On the held-out folds the GBM achieves roughly **69% top-1** and **90% top-3** accuracy, with a macro-F1 of **0.54** — the macro-F1 reflects real class imbalance (Administrative Services dominates the training set at 55/103 records; the smallest classes have only 3–4 records each). Full numbers and confusion matrices are in [`notebooks/5_h2o_automl.ipynb`](notebooks/5_h2o_automl.ipynb).
+- **H2O AutoML.** 80 models trained over 5-fold stratified cross-validation. Best model: a Gradient Boosting Machine (GBM) with learning-rate annealing. On the held-out folds the GBM achieves roughly **69% top-1** and **90% top-3** accuracy, with a macro-F1 of **0.54** — the macro-F1 reflects real class imbalance (Administrative Services dominates the training set at 55/103 records; the smallest classes have only 3–4 records each). The 90% top-3 accuracy means the correct classification appears in the reviewer's ranked recommendation list in 9 of 10 cases, shifting the HR analyst's task from open-ended classification to confirming or selecting from a short list. Full numbers and confusion matrices are in [`notebooks/5_h2o_automl.ipynb`](notebooks/5_h2o_automl.ipynb).
 - **scikit-learn fallback.** `app/ml_classifier.py` also trains a lightweight sklearn classifier that loads in ~50 MB at app boot. This is the path used in Fast Mode and whenever H2O is unavailable (e.g., no JVM, hitting the Cloud memory cap). The fallback is not an afterthought — it is a first-class citizen of the architecture so the app degrades gracefully rather than erroring.
-- **SHAP explainability.** Global feature-importance and per-prediction explanations are generated in notebook 5 using the `shap` library and are available as reference artifacts. The deployed app provides explainability through structured LLM narratives rather than SHAP visualizations.
+- **SHAP explainability.** Global feature-importance and per-prediction explanations are generated in notebook 5 using the `shap` library. The summary plot below shows which features the ML model weighs most heavily when classifying position descriptions — this is the audit trail for understanding how the model makes decisions. The deployed app provides per-classification explainability through structured LLM narratives; SHAP integration into the live UI is planned for a future release.
+
+![SHAP Feature Importance](reports/shap_feature_importance.png)
 
 ### 4.4 LangChain Agent System (Layer 3)
 
@@ -303,7 +309,7 @@ All credentials (Gemini, Tavily, CareerOneStop) are loaded from environment vari
 
 ### Known Limitations
 
-The responsible-AI work is not finished and never will be. The most important open items: (a) the training set is small and imbalanced, so confidence on underrepresented career groups is inherently lower — this is why GRIFFIN always returns a top-3 ranked list with alternatives; (b) the LLM layer depends on a hosted API (Google Gemini), which introduces a data-flow consideration for any future deployment handling confidential PDs; and (c) a production deployment would need a recurring bias audit cadence (see §5, Concerns and Risks for Scaling).
+The responsible-AI work is not finished and never will be. The most important open items: (a) the training set is small and imbalanced, so confidence on underrepresented career groups is inherently lower — this is why GRIFFIN always returns a top-3 ranked list with alternatives; (b) the LLM layer depends on a hosted API (Google Gemini), which introduces a data-flow consideration for any future deployment handling confidential PDs; (c) a production deployment would need a recurring bias audit cadence (see §5, Concerns and Risks for Scaling); and (d) the AI Assessment confidence score is the LLM's own self-reported estimate and has not been calibrated against held-out ground truth — it should be interpreted qualitatively as an expert's professional judgment, not as a statistical probability.
 
 ---
 

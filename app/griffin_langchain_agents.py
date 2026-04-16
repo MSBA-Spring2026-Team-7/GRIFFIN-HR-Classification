@@ -855,12 +855,10 @@ if __name__ == "__main__":
           f"{len(wm_pay_grades_df)} W&M pay grades.")
     print(f"[INFO] Training data: {len(training_df)} position descriptions loaded.")
 
-    # Gemini free tier allows 5 requests/minute. Components that call
-    # the LLM need breathing room between them to avoid 429 errors.
-    # A short pause after each LLM-heavy component keeps us under the limit.
-    # NOTE: These pauses are CLI-demo-only. The Streamlit web path (via
+    # Rate limit pauses for the CLI demo. With a paid Gemini account these
+    # can be reduced or removed. The Streamlit web path (via
     # agent_classifier.py) does NOT use rate limit pauses.
-    RATE_LIMIT_PAUSE = 30  # seconds between LLM-heavy components
+    RATE_LIMIT_PAUSE = 5  # seconds between LLM-heavy components (paid tier)
 
     print("\n" + "#" * 60)
     print("#  GRIFFIN Multi-Agent HR Classification System")

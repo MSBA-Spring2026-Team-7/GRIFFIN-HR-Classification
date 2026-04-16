@@ -38,7 +38,7 @@ pip install -r requirements.txt --quiet 2>nul
 
 REM Install pip packages that might be missing
 echo [SETUP] Ensuring pip packages are installed...
-pip install google-generativeai python-dotenv --quiet 2>nul
+pip install google-generativeai python-dotenv langchain langgraph langchain-google-genai python-docx --quiet 2>nul
 
 REM Check for .env
 if not exist ".env" (

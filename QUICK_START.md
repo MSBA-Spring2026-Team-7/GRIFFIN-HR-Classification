@@ -8,7 +8,7 @@ Open any terminal (PowerShell, Anaconda Prompt, or VS Code terminal):
 
 ```
 conda activate griffin
-cd "C:\Users\salva\Desktop\MSBA\Claude Skills\Courses\AI Course\HR_Classification_Project"
+cd GRIFFIN-HR-Classification
 streamlit run app/streamlit_app.py
 ```
 
@@ -21,7 +21,7 @@ To stop the app: press **Ctrl+C** in the terminal.
 ## Prerequisites (first time only)
 - Windows 10/11
 - Conda (Miniconda or Anaconda) installed
-- Google Gemini API key (free at https://aistudio.google.com/app/apikey)
+- Google Gemini API key (get at https://aistudio.google.com/app/apikey — a paid tier is recommended for production use)
 
 ## First-Time Setup
 

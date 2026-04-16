@@ -11,6 +11,7 @@ Gemini for AI-powered classification and explanation.
 Team 7: Steven Alvarado, Anmol Motwani, JR Jones, Brynn Vetrano
 """
 
+import csv
 import os
 import re
 import textwrap
@@ -549,7 +550,8 @@ st.markdown('<div class="section-label">Step 1 \u2014 Paste Position Description
             unsafe_allow_html=True)
 
 input_text = st.text_area(
-    label="",
+    label="Position Description Text",
+    label_visibility="collapsed",
     height=200,
     placeholder=(
         "Paste a position description here...\n\n"
@@ -1200,6 +1202,56 @@ if st.session_state.classification_results:
                 )
             except Exception:
                 pass  # Silent — export is non-critical
+
+        # ── Confirm Classification button (Full Analysis only) ──
+        _confirm_key = f"confirm_{job_idx}"
+        _confirmed_state_key = f"confirmed_{job_idx}"
+        if st.button("\u2713 Confirm This Classification is Correct",
+                     key=_confirm_key):
+            # Map career group -> occupational family via reference data
+            _occ_family = ""
+            _cg_code = primary.get("career_group_code")
+            if _cg_code is not None:
+                _cg_match = career_groups_df[
+                    career_groups_df["career_group_code"] == _cg_code
+                ]
+                if not _cg_match.empty:
+                    _occ_family = _cg_match.iloc[0]["occupational_family"]
+
+            _queue_path = os.path.join(PROJECT_ROOT, "data", "training",
+                                       "confirmed_queue.csv")
+            _queue_dir = os.path.dirname(_queue_path)
+            os.makedirs(_queue_dir, exist_ok=True)
+
+            _file_exists = os.path.isfile(_queue_path)
+            _row = [
+                datetime.now().isoformat(),
+                job,
+                str(primary.get("career_group_code", "")),
+                primary.get("career_group_name", ""),
+                primary.get("role_name", ""),
+                str(primary.get("pay_band", "")),
+                _occ_family,
+                classification_type,
+                "app_user",
+            ]
+            with open(_queue_path, "a", newline="", encoding="utf-8") as _f:
+                writer = csv.writer(_f)
+                if not _file_exists:
+                    writer.writerow([
+                        "timestamp", "pd_text", "career_group_code",
+                        "career_group_name", "role_name", "pay_band",
+                        "occ_family", "classification_type", "confirmed_by",
+                    ])
+                writer.writerow(_row)
+
+            st.session_state[_confirmed_state_key] = True
+
+        if st.session_state.get(_confirmed_state_key):
+            st.success(
+                "Classification saved to training queue. "
+                "Thank you \u2014 this helps GRIFFIN learn."
+            )
 
         if job_idx < total_jobs - 1:
             st.markdown('<hr class="gold-divider">', unsafe_allow_html=True)

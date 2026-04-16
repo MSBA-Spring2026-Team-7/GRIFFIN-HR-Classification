@@ -36,7 +36,7 @@ Position Description
 
 ## 2. Design Decisions
 
-**LLM Choice: Google Gemini (`gemini-2.5-flash`).** The class Colab uses this exact model string via `init_chat_model()`, so staying consistent avoids compatibility issues and keeps the project within the free-tier API quota. The script also demonstrates temperature experiments (0 vs. 1) on a classification prompt to show deterministic vs. creative behavior.
+**LLM Choice: Google Gemini (`gemini-2.5-flash`).** The class Colab uses this exact model string via `init_chat_model()`, so staying consistent avoids compatibility issues. A paid Gemini API tier is recommended for production use. The script also demonstrates temperature experiments (0 vs. 1) on a classification prompt to show deterministic vs. creative behavior.
 
 **External API: CareerOneStop for Virginia salary data.** DHRM classifies positions using Standard Occupational Classification (SOC) codes, and CareerOneStop provides Virginia-localized salary percentiles (10th through 90th) by SOC code. This makes the pay matching agent's recommendations grounded in real labor market data rather than generic estimates. Tavily web search serves as a fallback when structured data is insufficient.
 
@@ -72,6 +72,6 @@ Both templates serve as institutional knowledge capture -- they encode the class
 | Criterion | Verdict | Evidence |
 |-----------|---------|----------|
 | **F-001: Architecture Description** | PASS | Section 1 describes all three agents, their roles, tool assignments, and coordination flow. Includes a text-based architecture diagram showing the full pipeline from position description to final recommendation. |
-| **F-002: Design Decisions** | PASS | Section 2 explains *why* for each choice: Gemini (class consistency + free tier), CareerOneStop (Virginia-localized SOC data aligned with DHRM taxonomy), five-tool decomposition (single-responsibility per data source), InMemorySaver (session continuity). Section 3 addresses GRIFFIN integration and the H2O plug-in point. |
+| **F-002: Design Decisions** | PASS | Section 2 explains *why* for each choice: Gemini (class consistency + API availability), CareerOneStop (Virginia-localized SOC data aligned with DHRM taxonomy), five-tool decomposition (single-responsibility per data source), InMemorySaver (session continuity). Section 3 addresses GRIFFIN integration and the H2O plug-in point. |
 | **S-001: Length and Format** | PASS | Report body is approximately 750 words. Uses markdown with clear section headers, bullet points, a code-block diagram, and a summary table. |
 | **C-001: Report Clarity** | PASS | Opens with a plain-language overview of the three-agent system. Technical terms (SOC codes, DHRM, compensable factors, crosswalk) are explained in context. A reader unfamiliar with GRIFFIN can follow the architecture, decisions, and integration points without inspecting the source code. |
