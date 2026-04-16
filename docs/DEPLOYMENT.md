@@ -5,7 +5,7 @@ The GRIFFIN HR Classification app is deployed on Streamlit Community Cloud
 from the `main` branch of `MSBA-Spring2026-Team-7/GRIFFIN-HR-Classification`.
 
 ## Live URL
-[to be filled in after first deployment: https://<slug>.streamlit.app]
+https://griffin-hr-classifier.streamlit.app
 
 ## Architecture
 - **Source:** GitHub `MSBA-Spring2026-Team-7/GRIFFIN-HR-Classification` (public)

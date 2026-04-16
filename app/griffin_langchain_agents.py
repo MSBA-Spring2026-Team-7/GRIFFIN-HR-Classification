@@ -11,6 +11,10 @@ and the DHRM-to-W&M crosswalk).
 All 8 components implemented: LLM initialization, agent creation,
 message handling, streaming, custom tools, external API tools,
 agent memory, and multi-agent orchestration.
+
+Refactored for clean import: `import griffin_langchain_agents` triggers
+NO prints and NO data loading. Call `ensure_data_loaded()` to initialize
+reference DataFrames on first use.
 """
 
 # ============================================================
@@ -51,14 +55,42 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 
 # ============================================================
+#  CONTENT NORMALIZATION HELPER
+# ============================================================
+
+def _content_to_str(content):
+    """Normalize AIMessage.content to a plain string.
+
+    LangChain's AIMessage.content can be either:
+    - A str (simple text response)
+    - A list of content blocks (when the model uses tool calls):
+      [{"type": "text", "text": "..."}, {"type": "tool_use", ...}]
+
+    This helper extracts all text portions and joins them, so
+    downstream code that expects a string never crashes on a list.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict):
+                parts.append(block.get("text", ""))
+            elif isinstance(block, str):
+                parts.append(block)
+            else:
+                parts.append(str(block))
+        return "\n".join(parts)
+    return str(content)
+
+
+# ============================================================
 #  CONFIGURATION
 # ============================================================
 
 # API keys loaded from environment — never hardcoded in source.
 # Set these in your shell or .env before running.
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
-if not GOOGLE_API_KEY:
-    print("[WARNING] GOOGLE_API_KEY not set. LLM calls will fail.")
 
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
 CAREERONESTOP_TOKEN = os.environ.get("CAREERONESTOP_TOKEN", "")
@@ -73,44 +105,56 @@ TRAINING_DATA_PATH = os.path.join(PROJECT_ROOT, "data", "training", "workday_tra
 
 
 # ============================================================
-#  DATA LOADING
+#  LAZY DATA LOADING
 # ============================================================
-# Load all six reference Excel files once at module level so every tool
-# and agent can access them without repeated I/O. Using the openpyxl
-# engine because the files are .xlsx format.
+# Reference DataFrames are loaded on first access via ensure_data_loaded().
+# This avoids print spam and file I/O on `import griffin_langchain_agents`.
 
-print("[INFO] Loading GRIFFIN reference data ...")
+career_groups_df = None
+roles_df = None
+soc_codes_df = None
+crosswalk_df = None
+dhrm_pay_bands_df = None
+wm_pay_grades_df = None
+training_df = None
+sample_position = None
 
-career_groups_df = pd.read_excel(
-    os.path.join(DATA_DIR, "career_groups.xlsx"), engine="openpyxl"
-)
-roles_df = pd.read_excel(
-    os.path.join(DATA_DIR, "roles.xlsx"), engine="openpyxl"
-)
-soc_codes_df = pd.read_excel(
-    os.path.join(DATA_DIR, "soc_codes.xlsx"), engine="openpyxl"
-)
-crosswalk_df = pd.read_excel(
-    os.path.join(DATA_DIR, "crosswalk.xlsx"), engine="openpyxl"
-)
-dhrm_pay_bands_df = pd.read_excel(
-    os.path.join(DATA_DIR, "dhrm_pay_bands.xlsx"), engine="openpyxl"
-)
-wm_pay_grades_df = pd.read_excel(
-    os.path.join(DATA_DIR, "wm_pay_grades.xlsx"), engine="openpyxl"
-)
+_data_loaded = False
 
-# Load one sample position description for demo purposes.
-# workday_training.csv has 103 rows of real W&M job postings.
-training_df = pd.read_csv(TRAINING_DATA_PATH)
-sample_position = training_df.iloc[0]["censored_text"]
 
-print(f"[INFO] Loaded {len(career_groups_df)} career groups, "
-      f"{len(roles_df)} roles, {len(soc_codes_df)} SOC mappings, "
-      f"{len(crosswalk_df)} crosswalk rows, "
-      f"{len(dhrm_pay_bands_df)} DHRM pay bands, "
-      f"{len(wm_pay_grades_df)} W&M pay grades.")
-print(f"[INFO] Training data: {len(training_df)} position descriptions loaded.")
+def ensure_data_loaded():
+    """Load all GRIFFIN reference data (once). Safe to call multiple times."""
+    global career_groups_df, roles_df, soc_codes_df, crosswalk_df
+    global dhrm_pay_bands_df, wm_pay_grades_df, training_df, sample_position
+    global _data_loaded
+
+    if _data_loaded:
+        return
+
+    career_groups_df = pd.read_excel(
+        os.path.join(DATA_DIR, "career_groups.xlsx"), engine="openpyxl"
+    )
+    roles_df = pd.read_excel(
+        os.path.join(DATA_DIR, "roles.xlsx"), engine="openpyxl"
+    )
+    soc_codes_df = pd.read_excel(
+        os.path.join(DATA_DIR, "soc_codes.xlsx"), engine="openpyxl"
+    )
+    crosswalk_df = pd.read_excel(
+        os.path.join(DATA_DIR, "crosswalk.xlsx"), engine="openpyxl"
+    )
+    dhrm_pay_bands_df = pd.read_excel(
+        os.path.join(DATA_DIR, "dhrm_pay_bands.xlsx"), engine="openpyxl"
+    )
+    wm_pay_grades_df = pd.read_excel(
+        os.path.join(DATA_DIR, "wm_pay_grades.xlsx"), engine="openpyxl"
+    )
+
+    # Training data — used by CLI demo and sample prompts
+    training_df = pd.read_csv(TRAINING_DATA_PATH)
+    sample_position = training_df.iloc[0]["censored_text"]
+
+    _data_loaded = True
 
 
 # ============================================================
@@ -119,14 +163,39 @@ print(f"[INFO] Training data: {len(training_df)} position descriptions loaded.")
 # Why Gemini: the class Colab uses google_genai:gemini-2.5-flash,
 # so we match that to stay consistent with the professor's examples.
 
+
+def get_llm(api_key=None, temperature=0):
+    """Create a LangChain LLM instance for Gemini 2.5 Flash.
+
+    This is the shared entry point for both the Streamlit app (via
+    agent_classifier.py) and the CLI demo. If `api_key` is provided,
+    it is set in the environment so LangChain's google_genai provider
+    picks it up.
+
+    Args:
+        api_key: Optional Gemini API key. If provided, sets the
+                 GOOGLE_API_KEY env var for this process.
+        temperature: LLM temperature (0 = deterministic).
+
+    Returns:
+        A LangChain ChatModel instance.
+    """
+    if api_key:
+        os.environ["GOOGLE_API_KEY"] = api_key
+    return init_chat_model(
+        model="google_genai:gemini-2.5-flash", temperature=temperature
+    )
+
+
 def demo_llm_initialization():
     """Demonstrate direct LLM invocation and temperature experiments."""
+    ensure_data_loaded()
 
     print("\n" + "=" * 60)
     print("  Component 1: LLM Initialization")
     print("=" * 60)
 
-    llm = init_chat_model(model="google_genai:gemini-2.5-flash")
+    llm = get_llm()
 
     # --- Direct invocation (no agent) ---
     # This shows the LLM can answer without any agent scaffolding,
@@ -152,16 +221,12 @@ def demo_llm_initialization():
     )
 
     print("\n--- Temperature = 0 (deterministic) ---")
-    llm_temp0 = init_chat_model(
-        model="google_genai:gemini-2.5-flash", temperature=0
-    )
+    llm_temp0 = get_llm(temperature=0)
     response_temp0 = llm_temp0.invoke(classification_prompt)
     print(response_temp0.content)
 
     print("\n--- Temperature = 1 (creative) ---")
-    llm_temp1 = init_chat_model(
-        model="google_genai:gemini-2.5-flash", temperature=1
-    )
+    llm_temp1 = get_llm(temperature=1)
     response_temp1 = llm_temp1.invoke(classification_prompt)
     print(response_temp1.content)
 
@@ -197,18 +262,27 @@ PAY_MATCHER_SYSTEM_PROMPT = (
 )
 
 
-def create_agents(llm):
+def create_agents(llm, verbose=False):
     """Build the two core agents: classifier and pay matcher.
 
     Both get InMemorySaver checkpointers so Component 7 (memory) can
     demonstrate conversation recall later. Tools are wired in from
     Components 5 and 6 — the classifier gets data-search and web-search
     tools, while the pay matcher gets pay-band lookup and salary tools.
-    """
 
-    print("\n" + "=" * 60)
-    print("  Component 2: Agent Creation")
-    print("=" * 60)
+    Args:
+        llm: A LangChain ChatModel instance.
+        verbose: If True, print status messages (used by CLI demo).
+
+    Returns:
+        (classifier_agent, pay_matcher_agent) tuple.
+    """
+    ensure_data_loaded()
+
+    if verbose:
+        print("\n" + "=" * 60)
+        print("  Component 2: Agent Creation")
+        print("=" * 60)
 
     # Classifier agent — classifies positions into career groups / roles.
     # Tools: search_career_groups and search_roles (Component 5) plus
@@ -220,8 +294,9 @@ def create_agents(llm):
         system_prompt=CLASSIFIER_SYSTEM_PROMPT,
         checkpointer=classifier_memory,
     )
-    print("[OK] classifier_agent created with 3 tools (search_career_groups, "
-          "search_roles, web_search).")
+    if verbose:
+        print("[OK] classifier_agent created with 3 tools (search_career_groups, "
+              "search_roles, web_search).")
 
     # Pay matcher agent — maps classified positions to pay bands.
     # Tools: match_pay_band (Component 5) plus get_virginia_salary
@@ -233,8 +308,9 @@ def create_agents(llm):
         system_prompt=PAY_MATCHER_SYSTEM_PROMPT,
         checkpointer=pay_matcher_memory,
     )
-    print("[OK] pay_matcher_agent created with 2 tools (match_pay_band, "
-          "get_virginia_salary).")
+    if verbose:
+        print("[OK] pay_matcher_agent created with 2 tools (match_pay_band, "
+              "get_virginia_salary).")
 
     return classifier_agent, pay_matcher_agent
 
@@ -356,6 +432,7 @@ def search_career_groups(query: str) -> str:
         Top 3 matching career groups with code, name, family, and pay
         band range. Returns a message if no matches found.
     """
+    ensure_data_loaded()
     q = query.lower()
     mask = (
         career_groups_df["career_group_name"].str.lower().str.contains(q, na=False)
@@ -389,6 +466,7 @@ def search_roles(career_group_code: str) -> str:
         track, and a truncated role_summary. Returns a message if no
         roles found.
     """
+    ensure_data_loaded()
     # Convert to int for matching since the DataFrame column is numeric
     try:
         code_int = int(career_group_code)
@@ -427,6 +505,7 @@ def match_pay_band(pay_band: int) -> str:
         DHRM salary range and corresponding W&M pay grade with
         min/midpoint/max. Returns a message if pay band not found.
     """
+    ensure_data_loaded()
     xwalk_row = crosswalk_df[crosswalk_df["dhrm_pay_band"] == pay_band]
 
     if xwalk_row.empty:
@@ -445,6 +524,7 @@ def match_pay_band(pay_band: int) -> str:
 
 def demo_custom_tools():
     """Demonstrate the three custom tools operating on GRIFFIN data."""
+    ensure_data_loaded()
 
     print("\n" + "=" * 60)
     print("  Component 5: Custom Tools")
@@ -672,21 +752,25 @@ ORCHESTRATOR_SYSTEM_PROMPT = (
 )
 
 
-def demo_orchestration(llm, classifier_agent, pay_matcher_agent):
-    """Demonstrate multi-agent orchestration using the Colab Cell 45 pattern.
+def create_orchestrator(llm, classifier_agent, pay_matcher_agent,
+                        system_prompt_override=None):
+    """Build the orchestrator agent with sub-agent tool wrappers.
 
-    Creates @tool wrappers around sub-agents, builds an orchestrator agent
-    that delegates to them, and runs a full classification + pay matching
-    workflow on a real position from workday_training.csv.
+    This function is used by both the Streamlit wrapper (agent_classifier.py)
+    and the CLI demo. Separating creation from demo execution allows
+    reuse without print statements or demo-specific logic.
+
+    Args:
+        llm: A LangChain ChatModel instance.
+        classifier_agent: The classifier sub-agent.
+        pay_matcher_agent: The pay matcher sub-agent.
+        system_prompt_override: Optional custom system prompt for the
+            orchestrator (e.g., with blend detection instructions).
+
+    Returns:
+        The orchestrator agent instance.
     """
-
-    print("\n" + "=" * 60)
-    print("  Component 8: Multi-Agent Orchestration")
-    print("=" * 60)
-
-    # --- Step 1: Wrap sub-agents as @tool callables ---
-    # The orchestrator sees these as tools it can call. Each tool
-    # invokes the corresponding agent and returns its response text.
+    # Wrap sub-agents as @tool callables so the orchestrator can call them.
     @tool
     def call_classifier(position_description: str) -> str:
         """Call the classifier agent to classify a position into DHRM career groups and roles."""
@@ -694,7 +778,7 @@ def demo_orchestration(llm, classifier_agent, pay_matcher_agent):
             {"messages": [HumanMessage(content=position_description)]},
             {"configurable": {"thread_id": "orchestrator-classify"}},
         )
-        return response["messages"][-1].content
+        return _content_to_str(response["messages"][-1].content)
 
     @tool
     def call_pay_matcher(classification_info: str) -> str:
@@ -703,19 +787,35 @@ def demo_orchestration(llm, classifier_agent, pay_matcher_agent):
             {"messages": [HumanMessage(content=classification_info)]},
             {"configurable": {"thread_id": "orchestrator-pay"}},
         )
-        return response["messages"][-1].content
+        return _content_to_str(response["messages"][-1].content)
 
-    # --- Step 2: Create the orchestrator agent ---
     orchestrator_memory = InMemorySaver()
     orchestrator = create_agent(
         model=llm,
         tools=[call_classifier, call_pay_matcher],
-        system_prompt=ORCHESTRATOR_SYSTEM_PROMPT,
+        system_prompt=system_prompt_override or ORCHESTRATOR_SYSTEM_PROMPT,
         checkpointer=orchestrator_memory,
     )
+    return orchestrator
+
+
+def demo_orchestration(llm, classifier_agent, pay_matcher_agent):
+    """Demonstrate multi-agent orchestration using the Colab Cell 45 pattern.
+
+    Creates @tool wrappers around sub-agents, builds an orchestrator agent
+    that delegates to them, and runs a full classification + pay matching
+    workflow on a real position from workday_training.csv.
+    """
+    ensure_data_loaded()
+
+    print("\n" + "=" * 60)
+    print("  Component 8: Multi-Agent Orchestration")
+    print("=" * 60)
+
+    orchestrator = create_orchestrator(llm, classifier_agent, pay_matcher_agent)
     print("[OK] Orchestrator agent created with classifier and pay matcher tools.")
 
-    # --- Step 3: Run a full orchestration on a real position ---
+    # --- Run a full orchestration on a real position ---
     # Use a real position from workday_training.csv for domain relevance
     demo_position = training_df.iloc[2]["censored_text"] if len(training_df) > 2 else sample_position
     truncated = demo_position[:500] if len(demo_position) > 500 else demo_position
@@ -744,9 +844,22 @@ def demo_orchestration(llm, classifier_agent, pay_matcher_agent):
 if __name__ == "__main__":
     import time
 
+    # Eagerly load data and print info for the CLI demo
+    ensure_data_loaded()
+    if not GOOGLE_API_KEY:
+        print("[WARNING] GOOGLE_API_KEY not set. LLM calls will fail.")
+    print(f"[INFO] Loaded {len(career_groups_df)} career groups, "
+          f"{len(roles_df)} roles, {len(soc_codes_df)} SOC mappings, "
+          f"{len(crosswalk_df)} crosswalk rows, "
+          f"{len(dhrm_pay_bands_df)} DHRM pay bands, "
+          f"{len(wm_pay_grades_df)} W&M pay grades.")
+    print(f"[INFO] Training data: {len(training_df)} position descriptions loaded.")
+
     # Gemini free tier allows 5 requests/minute. Components that call
     # the LLM need breathing room between them to avoid 429 errors.
     # A short pause after each LLM-heavy component keeps us under the limit.
+    # NOTE: These pauses are CLI-demo-only. The Streamlit web path (via
+    # agent_classifier.py) does NOT use rate limit pauses.
     RATE_LIMIT_PAUSE = 30  # seconds between LLM-heavy components
 
     print("\n" + "#" * 60)
@@ -760,7 +873,7 @@ if __name__ == "__main__":
     time.sleep(RATE_LIMIT_PAUSE)
 
     # Component 2: Create the two domain-specific agents (with tools wired in)
-    classifier_agent, pay_matcher_agent = create_agents(llm)
+    classifier_agent, pay_matcher_agent = create_agents(llm, verbose=True)
 
     # Component 3: Multi-turn message handling demo
     demo_message_handling(classifier_agent)

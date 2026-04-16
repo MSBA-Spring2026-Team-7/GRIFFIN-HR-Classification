@@ -25,20 +25,13 @@ To stop the app: press **Ctrl+C** in the terminal.
 
 ## First-Time Setup
 
-### Option A: One-Click
-1. Open a terminal in this project folder
-2. Run: `setup_and_run.bat`
-3. The script creates the environment, installs packages, and launches the app
-4. Add your API key when prompted
-
-### Option B: Manual
 ```
-conda env create -f environment.yml
+conda env create -f environment-local.yml
 conda activate griffin
-pip install google-generativeai python-dotenv
+pip install polars pyarrow
 copy .env.example .env
 ```
-Then edit `.env` and add your Google API key: `GOOGLE_API_KEY=your-actual-key-here`
+Then edit `.env` and add your Gemini API key: `GEMINI_API_KEY=your-actual-key-here`
 
 Then run:
 ```
@@ -46,12 +39,23 @@ streamlit run app/streamlit_app.py
 ```
 
 ## Usage
-- **Fast Mode**: ML prediction only — instant results, no API key needed
-- **Full Analysis**: ML + Gemini AI — needs API key, slower but gives 3 ranked matches with AI rationale
+- **Fast Mode**: ML prediction only -- instant results, no API key needed
+- **Full Analysis**: ML + LangChain agent pipeline (Gemini AI) -- needs API key, provides 3 ranked matches with AI rationale and downloadable Word report
 - Paste a position description, choose your mode, click "Classify PD", review results
+- Click "Download Classification Report" to save results as a Word document
+
+## What You'll See (Full Analysis)
+1. **ML Classification** -- occupational family prediction with statistical probability
+2. **Best Match** -- top-ranked DHRM role with pay band and salary range
+3. **Alternative Role** -- second-best role in the same career group
+4. **Alternative Group** -- best role in a different career group (for triangulation)
+5. **AI Rationale** -- detailed explanation of the classification reasoning
+
+Each card shows dual confidence metrics: **ML Probability** (statistical) and **AI Assessment** (LLM judgment).
 
 ## Troubleshooting
-- **"ModuleNotFoundError"**: Run `pip install google-generativeai python-dotenv`
-- **"GOOGLE_API_KEY not found"**: Edit `.env` file and add your key (or switch to Fast Mode — no key needed)
-- **App won't start**: Make sure `conda activate griffin` worked — your prompt should show `(griffin)`
-- **H2O is slow on first run**: Normal — the Java runtime boots once, then subsequent classifications are fast
+- **"ModuleNotFoundError"**: Run `pip install langchain langgraph langchain-google-genai google-generativeai python-dotenv python-docx`
+- **"GEMINI_API_KEY not found"**: Edit `.env` file and add your key (or switch to Fast Mode -- no key needed)
+- **App won't start**: Make sure `conda activate griffin` worked -- your prompt should show `(griffin)`
+- **H2O is slow on first run**: Normal -- the Java runtime boots in the background during page load. Subsequent classifications use the cached model.
+- **Only 1 card instead of 3**: The AI agent may not have returned alternatives. Try again -- LLM responses can vary.
