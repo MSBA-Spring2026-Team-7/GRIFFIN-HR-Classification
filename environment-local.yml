@@ -54,3 +54,6 @@ dependencies:
     - scikit-learn
     - h2o
     - numpy
+    - polars>=1.0
+    - pyarrow>=14.0
+    - python-docx>=1.1

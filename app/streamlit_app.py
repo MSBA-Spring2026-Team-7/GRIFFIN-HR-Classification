@@ -11,14 +11,23 @@ Gemini for AI-powered classification and explanation.
 Team 7: Steven Alvarado, Anmol Motwani, JR Jones, Brynn Vetrano
 """
 
+import csv
 import os
 import re
-import json
+import textwrap
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 
 from feature_extraction import extract_features
 from ml_classifier import predict_occupational_family
+
+# ── Optional: Word document export (graceful degradation if python-docx missing) ──
+try:
+    from export_report import generate_classification_report
+    _EXPORT_AVAILABLE = True
+except ImportError:
+    _EXPORT_AVAILABLE = False
 
 # ── Load API key (Streamlit Cloud Secrets first, then .env for local dev) ──
 # Cloud: reads from st.secrets["GEMINI_API_KEY"] configured in the
@@ -32,7 +41,7 @@ try:
 except ImportError:
     pass
 
-import google.generativeai as genai
+from agent_classifier import classify_position
 
 
 def _load_gemini_api_key():
@@ -62,8 +71,6 @@ def _load_gemini_api_key():
 
 
 GOOGLE_API_KEY = _load_gemini_api_key()
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
 
 # ── Data paths ──────────────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -122,10 +129,26 @@ def ensure_sklearn_only():
     return True
 
 
-# Warm up sklearn fallback at boot (~50 MB). Do NOT boot H2O here — see
-# ensure_h2o_loaded() above. H2O loads only when the user explicitly opts in
-# via the "Load ML reference model" button in the sidebar.
+# Warm up sklearn fallback at boot (~50 MB, instant).
 ensure_sklearn_only()
+
+# Pre-warm H2O JVM in a background thread so it's ready when the user needs it.
+# This runs during page load — by the time the user pastes a PD and clicks
+# "Classify", the JVM is likely already booted (~30s head start).
+# On Streamlit Cloud (1GB free tier), this will fail silently and sklearn
+# remains the only classifier. The daemon=True flag ensures the thread
+# doesn't block app shutdown.
+import threading
+
+def _background_h2o_warmup():
+    """Boot H2O JVM + load model in background during app startup."""
+    try:
+        from ml_classifier import _get_h2o_model
+        _get_h2o_model()  # Boots JVM, loads model, caches in module-level var
+    except Exception:
+        pass  # Fails silently on Cloud (OOM) — sklearn is always available
+
+threading.Thread(target=_background_h2o_warmup, daemon=True, name="h2o-warmup").start()
 
 
 # ============================================================
@@ -244,138 +267,6 @@ def build_roles_for_group(group_code):
 
 
 # ============================================================
-#  GEMINI CLASSIFICATION
-# ============================================================
-CLASSIFICATION_SYSTEM_PROMPT = f"""You are GRIFFIN, an HR classification specialist for Virginia DHRM positions at William & Mary.
-
-You have access to the complete list of 56 DHRM career groups:
-
-{build_career_group_summary()}
-
-TASK: Given a position description, classify it into the most appropriate DHRM career group and role.
-
-RESPONSE FORMAT: You MUST respond with valid JSON only. No markdown, no explanation outside the JSON.
-{{
-  "career_group_code": <integer code>,
-  "career_group_name": "<name>",
-  "confidence": <integer 1-100>,
-  "reasoning": "<2-3 sentence explanation of why this classification fits>",
-  "alternative_code": <integer code of second-best match or null>,
-  "alternative_name": "<name of second-best match or null>"
-}}"""
-
-
-def classify_with_gemini(text):
-    """Use Gemini to classify a position description into DHRM career groups."""
-    try:
-        model = genai.GenerativeModel(
-            "gemini-2.5-flash",
-            system_instruction=CLASSIFICATION_SYSTEM_PROMPT
-        )
-        response = model.generate_content(
-            f"Classify this position description:\n\n{text}",
-            generation_config=genai.GenerationConfig(temperature=0.1)
-        )
-
-        # Parse JSON from response
-        raw = response.text.strip()
-        # Strip markdown code fences if present
-        if raw.startswith("```"):
-            raw = re.sub(r'^```(?:json)?\s*', '', raw)
-            raw = re.sub(r'\s*```$', '', raw)
-        result = json.loads(raw)
-        return result
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def find_best_role(group_code, text):
-    """Use Gemini to pick the best role within a career group."""
-    roles_list = build_roles_for_group(group_code)
-    try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        prompt = f"""Given this position description and the roles available in career group {group_code},
-pick the single best matching role.
-
-Position Description:
-{text}
-
-Available Roles:
-{roles_list}
-
-Respond with JSON only:
-{{"role_code": <integer>, "role_name": "<name>", "reasoning": "<1 sentence>"}}"""
-
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.GenerationConfig(temperature=0.1)
-        )
-        raw = response.text.strip()
-        if raw.startswith("```"):
-            raw = re.sub(r'^```(?:json)?\s*', '', raw)
-            raw = re.sub(r'\s*```$', '', raw)
-        return json.loads(raw)
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def find_top_roles(group_code, text, n=2):
-    """Use Gemini to pick the top N roles within a career group."""
-    roles_list = build_roles_for_group(group_code)
-    try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        prompt = f"""Given this position description and the roles available in career group {group_code},
-pick the top {n} best matching roles, ranked from best to worst match.
-
-Position Description:
-{text}
-
-Available Roles:
-{roles_list}
-
-Respond with a JSON array only (no markdown, no explanation):
-[{{"role_code": <integer>, "role_name": "<name>", "confidence": <integer 1-100>, "reasoning": "<1 sentence>"}}, ...]
-
-Return exactly {n} roles. If fewer than {n} roles exist, return all available roles."""
-
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.GenerationConfig(temperature=0.1)
-        )
-        raw = response.text.strip()
-        if raw.startswith("```"):
-            raw = re.sub(r'^```(?:json)?\s*', '', raw)
-            raw = re.sub(r'\s*```$', '', raw)
-        result = json.loads(raw)
-        return result if isinstance(result, list) else [result]
-    except Exception as e:
-        return [{"error": str(e)}]
-
-
-def generate_explanation(text, role_name, career_group_name, reasoning):
-    """Generate a detailed AI explanation for the classification."""
-    try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        prompt = f"""You are an HR classification expert at William & Mary.
-
-A position description has been classified as:
-- Career Group: {career_group_name}
-- Role: {role_name}
-- Initial reasoning: {reasoning}
-
-Position Description:
-{text}
-
-Write 3-4 sentences explaining why this position matches that classification.
-Be specific, professional, and HR-focused. Reference actual duties from the description
-and how they map to the DHRM classification criteria (Complexity, Results, Accountability)."""
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"AI explanation unavailable: {e}"
-
-
-# ============================================================
 #  STREAMLIT PAGE CONFIG & THEME
 # ============================================================
 st.set_page_config(
@@ -481,6 +372,11 @@ st.markdown("""
     border: 1px solid #DDD8C8;
     border-left: 5px solid #AAAAAA;
     opacity: 0.90;
+}
+.blend-match {
+    border: 1px solid #DDD8C8;
+    border-left: 5px solid #8B4513;
+    background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F0 100%);
 }
 
 /* Card header row */
@@ -608,13 +504,54 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
+#  CONFIDENCE METRICS EXPLANATION (collapsible)
+# ============================================================
+with st.expander("Understanding Confidence Metrics", expanded=False):
+    st.markdown("""
+<div style="background:#F0F7F4; border:1px solid #B8D8CC; border-radius:8px; padding:18px 22px;">
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:260px;">
+            <div style="font-family:'Open Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#115740; margin-bottom:6px;">
+                <span style="display:inline-block; width:10px; height:10px; background:#115740; border-radius:2px; margin-right:6px;"></span>ML Probability
+            </div>
+            <div style="font-family:'Open Sans',sans-serif; font-size:0.85rem; color:#2D2D2D; line-height:1.65;">
+                Computed by the trained machine learning model (GBM). This is a <strong>statistical probability</strong> based on 15 engineered features from the position description, validated against 100+ classified positions. Higher = stronger statistical match.
+            </div>
+        </div>
+        <div style="flex:1; min-width:260px;">
+            <div style="font-family:'Open Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#C99700; margin-bottom:6px;">
+                <span style="display:inline-block; width:10px; height:10px; background:#C99700; border-radius:2px; margin-right:6px;"></span>AI Assessment
+            </div>
+            <div style="font-family:'Open Sans',sans-serif; font-size:0.85rem; color:#2D2D2D; line-height:1.65;">
+                The language model's <strong>self-reported confidence</strong> in its classification. This reflects the AI's reasoning about how well the duties map to DHRM career groups, but is <em>not</em> a statistical metric. Think of it as an expert's professional judgment.
+            </div>
+        </div>
+    </div>
+    <div style="font-family:'Open Sans',sans-serif; font-size:0.82rem; color:#555; margin-top:14px; padding-top:12px; border-top:1px solid #B8D8CC; line-height:1.6;">
+        When both metrics agree and are high, confidence in the classification is strong. When they disagree, the classification warrants human review.
+    </div>
+    <div style="font-family:'Open Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#115740; margin-top:16px; margin-bottom:6px;">
+        Understanding the Three Ranked Matches
+    </div>
+    <div style="font-family:'Open Sans',sans-serif; font-size:0.82rem; color:#2D2D2D; line-height:1.65;">
+        Full Analysis provides <strong>three ranked recommendations</strong> to help HR specialists triangulate the correct classification:<br>
+        <span style="color:#115740;">&bull;</span> <strong>Best Match</strong> &mdash; the top-ranked role in the primary career group.<br>
+        <span style="color:#C99700;">&bull;</span> <strong>Alternative Role</strong> &mdash; the second-best role within the <em>same</em> career group, showing the next-closest fit at a different band level.<br>
+        <span style="color:#AAAAAA;">&bull;</span> <strong>Alternative Group</strong> &mdash; the best role in a <em>different</em> career group entirely, offering a second perspective when duties span multiple domains.<br><br>
+        <em>The Alternative Group card is especially valuable when a position has duties that cross career-group boundaries. Even a low-confidence alternative (10&ndash;20%) confirms the primary classification is strong, while a high-confidence alternative signals the classification warrants closer review.</em>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ============================================================
 #  INPUT SECTION
 # ============================================================
 st.markdown('<div class="section-label">Step 1 \u2014 Paste Position Description</div>',
             unsafe_allow_html=True)
 
 input_text = st.text_area(
-    label="",
+    label="Position Description Text",
+    label_visibility="collapsed",
     height=200,
     placeholder=(
         "Paste a position description here...\n\n"
@@ -649,6 +586,13 @@ with col_note:
 # ============================================================
 #  CLASSIFICATION RESULTS
 # ============================================================
+
+# ── Session state: persist classification results across reruns ──
+# Streamlit reruns the entire script on every widget interaction (including
+# download button clicks). Without session_state, computed results vanish.
+if "classification_results" not in st.session_state:
+    st.session_state.classification_results = []
+
 MEDALS = ["\U0001f947", "\U0001f948", "\U0001f949"]
 BAR_COLORS = ["#115740", "#C99700", "#AAAAAA"]
 CARD_CLASSES = ["top-match", "alt-match", "third-match"]
@@ -658,8 +602,15 @@ BADGE_CLASSES = ["top-badge", "card-badge", "card-badge"]
 
 def _render_match_card(medal, role_name, badge_label, badge_class, card_class,
                        bar_color, confidence, career_group_label, band,
-                       pay, wm, reasoning=None):
-    """Render a single match card with Anmol-style layout."""
+                       pay, wm, reasoning=None, ml_prob=None, ai_conf=None):
+    """Render a single match card with Anmol-style layout.
+
+    Confidence display logic:
+      - Full Analysis (both ml_prob and ai_conf provided): show two bars
+        -- ML Probability (green #115740) and AI Assessment (gold #C99700)
+      - Fast Mode (only ml_prob, no ai_conf): show one bar labeled "ML Probability"
+      - Legacy fallback (neither provided): use 'confidence' param as before
+    """
     # Build pay strings
     salary_min = f"${pay['minimum_salary']:,.0f}" if pay is not None else "N/A"
     salary_max = f"${pay['maximum_salary']:,.0f}" if pay is not None else "N/A"
@@ -671,8 +622,47 @@ def _render_match_card(medal, role_name, badge_label, badge_class, card_class,
     else:
         wm_grade = "N/A"
 
-    # Confidence bar width
-    bar_pct = min(max(confidence, 0), 100)
+    # Build confidence bar(s) HTML
+    if ml_prob is not None and ai_conf is not None:
+        # Full Analysis: two separate bars
+        ml_pct = min(max(ml_prob, 0), 100)
+        ai_pct = min(max(ai_conf, 0), 100)
+        conf_html = f"""
+        <div class="conf-bar-wrap">
+            <div class="conf-label">ML Probability: {ml_prob}%</div>
+            <div class="conf-bar-bg">
+                <div class="conf-bar-fill" style="width:{ml_pct}%;background:#115740"></div>
+            </div>
+        </div>
+        <div class="conf-bar-wrap">
+            <div class="conf-label">AI Assessment: {ai_conf}%</div>
+            <div class="conf-bar-bg">
+                <div class="conf-bar-fill" style="width:{ai_pct}%;background:#C99700"></div>
+            </div>
+        </div>
+        """
+    elif ml_prob is not None:
+        # Fast Mode: ML only
+        ml_pct = min(max(ml_prob, 0), 100)
+        conf_html = f"""
+        <div class="conf-bar-wrap">
+            <div class="conf-label">ML Probability: {ml_prob}%</div>
+            <div class="conf-bar-bg">
+                <div class="conf-bar-fill" style="width:{ml_pct}%;background:#115740"></div>
+            </div>
+        </div>
+        """
+    else:
+        # Legacy fallback
+        bar_pct = min(max(confidence, 0), 100)
+        conf_html = f"""
+        <div class="conf-bar-wrap">
+            <div class="conf-label">Confidence: {confidence}%</div>
+            <div class="conf-bar-bg">
+                <div class="conf-bar-fill" style="width:{bar_pct}%;background:{bar_color}"></div>
+            </div>
+        </div>
+        """
 
     card_html = f"""
     <div class="match-card {card_class}">
@@ -681,12 +671,7 @@ def _render_match_card(medal, role_name, badge_label, badge_class, card_class,
             <span class="card-role-name">{role_name}</span>
             <span class="card-badge {badge_class}">{badge_label}</span>
         </div>
-        <div class="conf-bar-wrap">
-            <div class="conf-label">AI Confidence: {confidence}%</div>
-            <div class="conf-bar-bg">
-                <div class="conf-bar-fill" style="width:{bar_pct}%;background:{bar_color}"></div>
-            </div>
-        </div>
+        {conf_html}
         <div class="data-pills">
             <span class="data-pill"><b>Career Group:</b> {career_group_label}</span>
             <span class="data-pill"><b>Pay Band:</b> {band_display}</span>
@@ -696,7 +681,36 @@ def _render_match_card(medal, role_name, badge_label, badge_class, card_class,
         {"<div style='font-family:Open Sans,sans-serif;font-size:0.85rem;color:#555;line-height:1.6;margin-top:4px'><em>" + reasoning + "</em></div>" if reasoning else ""}
     </div>
     """
-    st.markdown(card_html, unsafe_allow_html=True)
+    # Strip ALL leading whitespace per line — prevents Streamlit's markdown
+    # parser from treating indented HTML as preformatted code blocks.
+    clean_html = '\n'.join(line.lstrip() for line in card_html.split('\n'))
+    st.markdown(clean_html, unsafe_allow_html=True)
+
+
+def _lookup_ml_prob(career_group_code, ml_result):
+    """Look up the ML probability for a career group's occupational family.
+
+    Maps the career_group_code to its occupational family via career_groups_df,
+    then finds the matching probability in ml_result['probabilities'].
+    Returns an integer percentage, or None if no match found.
+    """
+    if not ml_result or not career_group_code:
+        return None
+    probs = ml_result.get("probabilities", {})
+    if not probs:
+        return None
+    # Map career group code -> occupational family
+    cg_match = career_groups_df[
+        career_groups_df["career_group_code"] == career_group_code
+    ]
+    if cg_match.empty:
+        return None
+    family = cg_match.iloc[0]["occupational_family"]
+    # Case-insensitive lookup in probabilities
+    for fam_name, pct in probs.items():
+        if fam_name.lower() == family.lower():
+            return pct
+    return None
 
 
 def _lookup_role_details(role_code, posted_salary=None):
@@ -711,6 +725,89 @@ def _lookup_role_details(role_code, posted_salary=None):
     return band, pay, wm
 
 
+def _render_blend_card(primary, secondary, weighted_salary, ml_result=None):
+    """Render a composite blend card showing both primary and secondary roles.
+
+    Uses the same visual language as _render_match_card but with a
+    distinct bronze border and dual-role layout.
+
+    Args:
+        primary: dict with career_group_code, career_group_name, role_name,
+                 pay_band, confidence, duty_pct, reasoning
+        secondary: dict with same fields
+        weighted_salary: dict with min, midpoint, max (or None)
+        ml_result: ML classification result dict (for ML probability lookup)
+    """
+    p_name = clean_role_name(primary.get("role_name", "Unknown"))
+    s_name = clean_role_name(secondary.get("role_name", "Unknown"))
+    p_pct = primary.get("duty_pct", 0.65)
+    s_pct = secondary.get("duty_pct", 0.35)
+    p_conf = primary.get("confidence", "N/A")
+    s_conf = secondary.get("confidence", "N/A")
+    p_group = f"{primary.get('career_group_code', '?')} - {primary.get('career_group_name', 'Unknown')}"
+    s_group = f"{secondary.get('career_group_code', '?')} - {secondary.get('career_group_name', 'Unknown')}"
+    p_band = primary.get("pay_band", "N/A")
+    s_band = secondary.get("pay_band", "N/A")
+
+    # Look up ML probabilities for each career group
+    p_ml_prob = _lookup_ml_prob(primary.get("career_group_code"), ml_result)
+    s_ml_prob = _lookup_ml_prob(secondary.get("career_group_code"), ml_result)
+    p_ml_str = f"{p_ml_prob}%" if p_ml_prob is not None else "N/A"
+    s_ml_str = f"{s_ml_prob}%" if s_ml_prob is not None else "N/A"
+
+    # Weighted salary display
+    if weighted_salary:
+        ws_min = f"${weighted_salary['min']:,.0f}"
+        ws_mid = f"${weighted_salary['midpoint']:,.0f}"
+        ws_max = f"${weighted_salary['max']:,.0f}"
+        ws_display = f"{ws_min} &ndash; {ws_mid} &ndash; {ws_max}"
+    else:
+        ws_display = "N/A"
+
+    card_html = f"""
+    <div class="match-card blend-match">
+        <div class="card-header">
+            <span class="card-medal">&#9878;</span>
+            <span class="card-role-name">Blended Classification</span>
+            <span class="card-badge" style="background:#FFF0E0; color:#8B4513; border-color:#8B4513; font-weight:600;">Blended</span>
+        </div>
+        <div style="font-family:'Open Sans',sans-serif; font-size:0.82rem; color:#555; margin-bottom:14px; line-height:1.6;">
+            This position spans two career groups. Duties are split across the primary and secondary classifications below.
+            The blend threshold of 30% was met by the secondary group.
+        </div>
+        <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
+            <div style="flex:1; min-width:240px; background:#F7F4EE; border:1px solid #DDD8C8; border-radius:8px; padding:12px 16px;">
+                <div style="font-family:'Open Sans',sans-serif; font-size:0.68rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#115740; margin-bottom:6px;">Primary ({p_pct:.0%} of duties)</div>
+                <div style="font-family:'Crimson Text',serif; font-size:1.1rem; font-weight:700; color:#115740;">{p_name}</div>
+                <div class="data-pills" style="margin-top:8px;">
+                    <span class="data-pill"><b>Group:</b> {p_group}</span>
+                    <span class="data-pill"><b>Band:</b> {p_band}</span>
+                    <span class="data-pill"><b>ML Prob:</b> {p_ml_str}</span>
+                    <span class="data-pill"><b>AI Assess:</b> {p_conf}%</span>
+                </div>
+            </div>
+            <div style="flex:1; min-width:240px; background:#FFF8F0; border:1px solid #DDD8C8; border-radius:8px; padding:12px 16px;">
+                <div style="font-family:'Open Sans',sans-serif; font-size:0.68rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#8B4513; margin-bottom:6px;">Secondary ({s_pct:.0%} of duties)</div>
+                <div style="font-family:'Crimson Text',serif; font-size:1.1rem; font-weight:700; color:#8B4513;">{s_name}</div>
+                <div class="data-pills" style="margin-top:8px;">
+                    <span class="data-pill"><b>Group:</b> {s_group}</span>
+                    <span class="data-pill"><b>Band:</b> {s_band}</span>
+                    <span class="data-pill"><b>ML Prob:</b> {s_ml_str}</span>
+                    <span class="data-pill"><b>AI Assess:</b> {s_conf}%</span>
+                </div>
+            </div>
+        </div>
+        <div class="data-pills">
+            <span class="data-pill"><b>Weighted Salary (Min &ndash; Mid &ndash; Max):</b> {ws_display}</span>
+            <span class="data-pill"><b>Formula:</b> (Primary x {p_pct:.0%}) + (Secondary x {s_pct:.0%})</span>
+        </div>
+    </div>
+    """
+    clean_html = '\n'.join(line.lstrip() for line in card_html.split('\n'))
+    st.markdown(clean_html, unsafe_allow_html=True)
+
+
+# ── Classify PD button: compute results and store in session_state ──
 if run:
     if not input_text.strip():
         st.warning("Please paste a job description before classifying.")
@@ -727,6 +824,9 @@ if run:
 
         jobs = [j.strip() for j in input_text.split("---") if j.strip()]
 
+        # Clear previous results when a new classification run starts
+        st.session_state.classification_results = []
+
         for job_idx, job in enumerate(jobs):
 
             # Extract posted salary from PD for W&M grade matching
@@ -737,260 +837,433 @@ if run:
                 features = extract_features(job)
                 ml_result = predict_occupational_family(features)
 
-            # ── Full Analysis: Gemini classification ──
-            classification = None
+            # ── Full Analysis: Agent pipeline classification ──
+            agent_result = None
             if mode == "Full Analysis":
-                with st.spinner(f"Classifying position{f' {job_idx+1}' if len(jobs) > 1 else ''} with Gemini AI..."):
-                    classification = classify_with_gemini(job)
+                with st.spinner(f"Classifying position{f' {job_idx+1}' if len(jobs) > 1 else ''} with Agentic AI..."):
+                    agent_result = classify_position(job, GOOGLE_API_KEY)
 
-                if "error" in classification:
-                    st.error(f"Classification failed: {classification['error']}")
+                if "error" in agent_result:
+                    st.error(f"Classification failed: {agent_result['error']}")
                     continue
 
-            # Section header
-            label = f"Results \u2014 Position {job_idx+1}" if len(jobs) > 1 else "Classification Results"
-            st.markdown(f'<div class="results-header">{label}</div>', unsafe_allow_html=True)
+            # Store the result in session_state so it survives reruns
+            st.session_state.classification_results.append({
+                "job_text": job,
+                "agent_result": agent_result,
+                "ml_result": ml_result,
+                "mode": mode,
+                "posted_salary": posted_salary,
+            })
 
-            if posted_salary:
-                st.markdown(f'<div style="font-family:Open Sans,sans-serif; font-size:0.82rem; color:#555; margin-bottom:12px;">\U0001f4cb <b>Posted salary detected:</b> ${posted_salary:,.0f} &mdash; used for W&amp;M grade matching (midpoint-as-ceiling method)</div>', unsafe_allow_html=True)
+# ── Render results from session_state (persists across reruns) ──
+if st.session_state.classification_results:
+    # Clear Results button
+    if st.button("Clear Results", key="clear_results"):
+        st.session_state.classification_results = []
+        st.rerun()
 
-            # Show input preview
-            with st.expander("Position description used", expanded=False):
-                st.write(job)
+    results_list = st.session_state.classification_results
+    total_jobs = len(results_list)
 
-            # ══════════════════════════════════════════════════
-            #  FAST MODE — ML-only results
-            # ══════════════════════════════════════════════════
-            if mode == "Fast Mode":
-                if ml_result:
-                    sorted_probs = sorted(ml_result['probabilities'].items(),
-                                          key=lambda x: x[1], reverse=True)
-                    top_pred = sorted_probs[0]
+    for job_idx, stored in enumerate(results_list):
+        job = stored["job_text"]
+        agent_result = stored["agent_result"]
+        ml_result = stored["ml_result"]
+        result_mode = stored["mode"]
+        posted_salary = stored["posted_salary"]
 
-                    # Enhanced ML-only primary card
-                    st.markdown(f"""
-                    <div class="match-card top-match">
-                        <div class="card-header">
-                            <span class="card-medal">\U0001f3c5</span>
-                            <span class="card-role-name">{top_pred[0]}</span>
-                            <span class="card-badge top-badge">ML Prediction</span>
-                        </div>
-                        <div class="conf-bar-wrap">
-                            <div class="conf-label">ML Confidence: {top_pred[1]}%</div>
-                            <div class="conf-bar-bg">
-                                <div class="conf-bar-fill" style="width:{top_pred[1]}%;background:#C99700"></div>
-                            </div>
-                        </div>
-                        <div class="data-pills">
-                            <span class="data-pill"><b>Method:</b> {ml_result['method']}</span>
-                            <span class="data-pill"><b>Occupational Family:</b> {top_pred[0]}</span>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+        # Section header
+        label = f"Results \u2014 Position {job_idx+1}" if total_jobs > 1 else "Classification Results"
+        st.markdown(f'<div class="results-header">{label}</div>', unsafe_allow_html=True)
 
-                    # W&M grade lookup from ML prediction
-                    # Map top occupational family back to career group to find a pay band
-                    ml_family = top_pred[0]
-                    ml_cg_match = career_groups_df[
-                        career_groups_df['occupational_family'].str.lower() == ml_family.lower()
-                    ]
-                    if not ml_cg_match.empty:
-                        ml_band_min = int(ml_cg_match.iloc[0]['pay_band_min'])
-                        ml_band_max = int(ml_cg_match.iloc[0]['pay_band_max'])
-                        ml_band_mid = (ml_band_min + ml_band_max) // 2
-                        ml_pay = get_pay_info(ml_band_mid)
-                        ml_wm = get_wm_grade(ml_band_mid, posted_salary=posted_salary)
+        if posted_salary:
+            st.markdown(f'<div style="font-family:Open Sans,sans-serif; font-size:0.82rem; color:#555; margin-bottom:12px;">\U0001f4cb <b>Posted salary detected:</b> ${posted_salary:,.0f} &mdash; used for W&amp;M grade matching (midpoint-as-ceiling method)</div>', unsafe_allow_html=True)
 
-                        if ml_pay is not None or ml_wm is not None:
-                            pay_str = f"${ml_pay['minimum_salary']:,.0f} \u2013 ${ml_pay['maximum_salary']:,.0f}" if ml_pay is not None else "N/A"
-                            wm_str = f"{ml_wm['wm_pay_grade']} (${ml_wm['wm_min']:,.0f} \u2013 ${ml_wm['wm_max']:,.0f})" if ml_wm is not None else "N/A"
-                            st.markdown(f"""
-                            <div style="background:#FFFFFF; border:1px solid #DDD8C8; border-left:4px solid #115740; border-radius:8px; padding:14px 18px; margin-bottom:16px;">
-                                <div style="font-family:'Open Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#115740; margin-bottom:8px;">Estimated Pay (from ML Family Match)</div>
-                                <div class="data-pills">
-                                    <span class="data-pill"><b>Career Group:</b> {ml_cg_match.iloc[0]['career_group_code']} - {ml_cg_match.iloc[0]['career_group_name']}</span>
-                                    <span class="data-pill"><b>Pay Band Range:</b> {ml_band_min}\u2013{ml_band_max}</span>
-                                    <span class="data-pill"><b>DHRM Salary (Band {ml_band_mid}):</b> {pay_str}</span>
-                                    <span class="data-pill"><b>W&amp;M Grade:</b> {wm_str}</span>
-                                </div>
-                                <div style="font-family:'Open Sans',sans-serif; font-size:0.75rem; color:#888; margin-top:6px;">
-                                    <em>Estimated from midpoint of family pay band range. Use Full Analysis for role-specific pay data.</em>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
+        # Show input preview
+        with st.expander("Position description used", expanded=False):
+            st.write(job)
 
-                    # Show all probabilities as a mini table
-                    st.markdown("**All Occupational Family Probabilities:**")
-                    for cls, pct in sorted_probs:
-                        bar_width = max(pct, 1)
-                        st.markdown(f"""
-                        <div style="display:flex; align-items:center; gap:8px; margin:4px 0; font-family:'Open Sans',sans-serif; font-size:0.82rem;">
-                            <span style="width:280px; color:#2D2D2D;">{cls}</span>
-                            <div style="flex:1; background:#EDE8DA; border-radius:3px; height:12px; overflow:hidden;">
-                                <div style="width:{bar_width}%; background:{'#115740' if pct > 10 else '#C99700'}; height:12px; border-radius:3px;"></div>
-                            </div>
-                            <span style="width:50px; text-align:right; color:#555; font-weight:600;">{pct}%</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                    # Note about upgrading to Full Analysis
-                    st.info("For specific role matching, pay band details, and AI-powered rationale, switch to **Full Analysis** mode.")
-                else:
-                    st.error("ML classification returned no results.")
-
-                if job_idx < len(jobs) - 1:
-                    st.markdown('<hr class="gold-divider">', unsafe_allow_html=True)
-                continue  # Skip Gemini logic entirely in Fast Mode
-
-            # ══════════════════════════════════════════════════
-            #  FULL ANALYSIS — ML panel (compact, as before)
-            # ══════════════════════════════════════════════════
+        # ══════════════════════════════════════════════════
+        #  FAST MODE — ML-only results
+        # ══════════════════════════════════════════════════
+        if result_mode == "Fast Mode":
             if ml_result:
                 sorted_probs = sorted(ml_result['probabilities'].items(),
                                       key=lambda x: x[1], reverse=True)
                 top_pred = sorted_probs[0]
-                method_label = ml_result['method']
 
+                # Enhanced ML-only primary card
                 st.markdown(f"""
-                <div style="background:#FFFFFF; border:1px solid #DDD8C8; border-left:4px solid #C99700; border-radius:8px; padding:14px 18px; margin-bottom:16px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="font-family:'Open Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#C99700;">ML Classification ({method_label})</span>
-                        <span style="font-family:'Open Sans',sans-serif; font-size:0.68rem; color:#888;">Local prediction &mdash; no API cost</span>
+                <div class="match-card top-match">
+                    <div class="card-header">
+                        <span class="card-medal">\U0001f3c5</span>
+                        <span class="card-role-name">{top_pred[0]}</span>
+                        <span class="card-badge top-badge">ML Prediction</span>
                     </div>
-                    <div style="font-family:'Open Sans',sans-serif; font-size:0.92rem; color:#2D2D2D;">
-                        <strong>Predicted Family:</strong> {top_pred[0]} ({top_pred[1]}% confidence)
+                    <div class="conf-bar-wrap">
+                        <div class="conf-label">ML Probability: {top_pred[1]}%</div>
+                        <div class="conf-bar-bg">
+                            <div class="conf-bar-fill" style="width:{top_pred[1]}%;background:#C99700"></div>
+                        </div>
                     </div>
-                    <div style="font-family:'Open Sans',sans-serif; font-size:0.78rem; color:#666; margin-top:6px;">
-                        {' &middot; '.join(f'{cls}: {pct}%' for cls, pct in sorted_probs[:4])}
+                    <div class="data-pills">
+                        <span class="data-pill"><b>Method:</b> {ml_result['method']}</span>
+                        <span class="data-pill"><b>Occupational Family:</b> {top_pred[0]}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-            # ── Gather Gemini classification data ──
-            primary_code = classification.get("career_group_code")
-            primary_name = classification.get("career_group_name", "Unknown")
-            confidence = classification.get("confidence", 0)
-            reasoning = classification.get("reasoning", "")
-            alt_code = classification.get("alternative_code")
-            alt_name = classification.get("alternative_name")
+                # W&M grade lookup from ML prediction
+                # Map top occupational family back to career group to find a pay band
+                ml_family = top_pred[0]
+                ml_cg_match = career_groups_df[
+                    career_groups_df['occupational_family'].str.lower() == ml_family.lower()
+                ]
+                if not ml_cg_match.empty:
+                    ml_band_min = int(ml_cg_match.iloc[0]['pay_band_min'])
+                    ml_band_max = int(ml_cg_match.iloc[0]['pay_band_max'])
+                    ml_band_mid = (ml_band_min + ml_band_max) // 2
+                    ml_pay = get_pay_info(ml_band_mid)
+                    ml_wm = get_wm_grade(ml_band_mid, posted_salary=posted_salary)
 
-            # ── Step 2: Find top 2 roles in primary career group ──
-            with st.spinner("Matching to specific roles..."):
-                primary_roles = find_top_roles(primary_code, job, n=2)
+                    if ml_pay is not None or ml_wm is not None:
+                        pay_str = f"${ml_pay['minimum_salary']:,.0f} \u2013 ${ml_pay['maximum_salary']:,.0f}" if ml_pay is not None else "N/A"
+                        wm_str = f"{ml_wm['wm_pay_grade']} (${ml_wm['wm_min']:,.0f} \u2013 ${ml_wm['wm_max']:,.0f})" if ml_wm is not None else "N/A"
+                        st.markdown(f"""
+                        <div style="background:#FFFFFF; border:1px solid #DDD8C8; border-left:4px solid #115740; border-radius:8px; padding:14px 18px; margin-bottom:16px;">
+                            <div style="font-family:'Open Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#115740; margin-bottom:8px;">Estimated Pay (from ML Family Match)</div>
+                            <div class="data-pills">
+                                <span class="data-pill"><b>Career Group:</b> {ml_cg_match.iloc[0]['career_group_code']} - {ml_cg_match.iloc[0]['career_group_name']}</span>
+                                <span class="data-pill"><b>Pay Band Range:</b> {ml_band_min}\u2013{ml_band_max}</span>
+                                <span class="data-pill"><b>DHRM Salary (Band {ml_band_mid}):</b> {pay_str}</span>
+                                <span class="data-pill"><b>W&amp;M Grade:</b> {wm_str}</span>
+                            </div>
+                            <div style="font-family:'Open Sans',sans-serif; font-size:0.75rem; color:#888; margin-top:6px;">
+                                <em>Estimated from midpoint of family pay band range. Use Full Analysis for role-specific pay data.</em>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-            # ── Step 3: Find best role in alternative career group (if exists) ──
-            alt_role_result = None
-            if alt_code and alt_name:
-                with st.spinner("Checking alternative career group..."):
-                    alt_role_result = find_best_role(alt_code, job)
-                    if "error" in alt_role_result:
-                        alt_role_result = None
+                # Show all probabilities as a mini table
+                st.markdown("**All Occupational Family Probabilities:**")
+                for cls, pct in sorted_probs:
+                    bar_width = max(pct, 1)
+                    st.markdown(f"""
+                    <div style="display:flex; align-items:center; gap:8px; margin:4px 0; font-family:'Open Sans',sans-serif; font-size:0.82rem;">
+                        <span style="width:280px; color:#2D2D2D;">{cls}</span>
+                        <div style="flex:1; background:#EDE8DA; border-radius:3px; height:12px; overflow:hidden;">
+                            <div style="width:{bar_width}%; background:{'#115740' if pct > 10 else '#C99700'}; height:12px; border-radius:3px;"></div>
+                        </div>
+                        <span style="width:50px; text-align:right; color:#555; font-weight:600;">{pct}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            # ══════════════════════════════════════════════════
-            #  CARD 1: Best Match (top role in primary group)
-            # ══════════════════════════════════════════════════
-            if primary_roles and "error" not in primary_roles[0]:
-                r1 = primary_roles[0]
-                r1_name = clean_role_name(r1.get("role_name", "Unknown"))
-                r1_code = r1.get("role_code")
-                r1_conf = r1.get("confidence", confidence)
-                r1_reasoning = r1.get("reasoning", reasoning)
-                r1_band, r1_pay, r1_wm = _lookup_role_details(r1_code, posted_salary=posted_salary)
+                # Note about upgrading to Full Analysis
+                st.info("For specific role matching, pay band details, and AI-powered rationale, switch to **Full Analysis** mode.")
 
-                _render_match_card(
-                    medal=MEDALS[0],
-                    role_name=r1_name,
-                    badge_label=BADGE_LABELS[0],
-                    badge_class=BADGE_CLASSES[0],
-                    card_class=CARD_CLASSES[0],
-                    bar_color=BAR_COLORS[0],
-                    confidence=r1_conf,
-                    career_group_label=f"{primary_code} - {primary_name}",
-                    band=r1_band,
-                    pay=r1_pay,
-                    wm=r1_wm,
-                    reasoning=r1_reasoning,
-                )
-
-                # AI detailed explanation for top match only
-                if use_ai_explanation:
-                    with st.spinner("Generating detailed AI explanation..."):
-                        explanation = generate_explanation(
-                            job, r1_name, primary_name, reasoning
+                # ── Download button (Fast Mode) ──
+                if _EXPORT_AVAILABLE:
+                    try:
+                        report_bytes = generate_classification_report(
+                            pd_text=job,
+                            classification_result={},
+                            ml_result=ml_result,
+                            mode=result_mode,
+                            posted_salary=posted_salary,
                         )
-                    # Convert markdown **bold** to HTML <strong> for raw HTML rendering
-                    explanation_html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', explanation)
-                    st.markdown(
-                        f'<div class="ai-block">'
-                        f'<div class="ai-block-label">AI Classification Rationale</div>'
-                        f'<p class="ai-block-text">{explanation_html}</p>'
-                        f'</div>',
-                        unsafe_allow_html=True
-                    )
+                        st.download_button(
+                            label="\U0001f4c4 Download Classification Report",
+                            data=report_bytes,
+                            file_name=f"GRIFFIN_Classification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            key=f"dl_fast_{job_idx}",
+                        )
+                    except Exception:
+                        pass  # Silent — export is non-critical
             else:
-                st.error("Could not determine a matching role in the primary career group.")
+                st.error("ML classification returned no results.")
 
-            # ══════════════════════════════════════════════════
-            #  CARD 2: Alternative Role (2nd role in primary group)
-            # ══════════════════════════════════════════════════
-            if len(primary_roles) >= 2 and "error" not in primary_roles[1]:
-                r2 = primary_roles[1]
-                r2_name = clean_role_name(r2.get("role_name", "Unknown"))
-                r2_code = r2.get("role_code")
-                r2_conf = r2.get("confidence", confidence - 10 if confidence > 10 else confidence)
-                r2_reasoning = r2.get("reasoning", "")
-                r2_band, r2_pay, r2_wm = _lookup_role_details(r2_code, posted_salary=posted_salary)
-
-                _render_match_card(
-                    medal=MEDALS[1],
-                    role_name=r2_name,
-                    badge_label=BADGE_LABELS[1],
-                    badge_class=BADGE_CLASSES[1],
-                    card_class=CARD_CLASSES[1],
-                    bar_color=BAR_COLORS[1],
-                    confidence=r2_conf,
-                    career_group_label=f"{primary_code} - {primary_name}",
-                    band=r2_band,
-                    pay=r2_pay,
-                    wm=r2_wm,
-                    reasoning=r2_reasoning,
-                )
-
-            # ══════════════════════════════════════════════════
-            #  CARD 3: Alternative Group (best role in alt group)
-            # ══════════════════════════════════════════════════
-            if alt_role_result and alt_code and alt_name:
-                r3_name = clean_role_name(alt_role_result.get("role_name", "Unknown"))
-                r3_code = alt_role_result.get("role_code")
-                # Alt group confidence is lower than primary
-                r3_conf = max(confidence - 20, 10)
-                r3_reasoning = alt_role_result.get("reasoning", "")
-                r3_band, r3_pay, r3_wm = _lookup_role_details(r3_code, posted_salary=posted_salary)
-
-                _render_match_card(
-                    medal=MEDALS[2],
-                    role_name=r3_name,
-                    badge_label=BADGE_LABELS[2],
-                    badge_class=BADGE_CLASSES[2],
-                    card_class=CARD_CLASSES[2],
-                    bar_color=BAR_COLORS[2],
-                    confidence=r3_conf,
-                    career_group_label=f"{alt_code} - {alt_name}",
-                    band=r3_band,
-                    pay=r3_pay,
-                    wm=r3_wm,
-                    reasoning=r3_reasoning,
-                )
-
-            if job_idx < len(jobs) - 1:
+            if job_idx < total_jobs - 1:
                 st.markdown('<hr class="gold-divider">', unsafe_allow_html=True)
+            continue  # Skip Gemini logic entirely in Fast Mode
 
-        # ── Methodology info box (after all cards) ──
-        st.markdown('<hr class="gold-divider">', unsafe_allow_html=True)
-        ml_method_str = ml_result['method'] if ml_result else 'unavailable'
+        # ══════════════════════════════════════════════════
+        #  FULL ANALYSIS — ML panel (compact, as before)
+        # ══════════════════════════════════════════════════
+        if ml_result:
+            sorted_probs = sorted(ml_result['probabilities'].items(),
+                                  key=lambda x: x[1], reverse=True)
+            top_pred = sorted_probs[0]
+            method_label = ml_result['method']
 
-        if mode == "Fast Mode":
             st.markdown(f"""
+            <div style="background:#FFFFFF; border:1px solid #DDD8C8; border-left:4px solid #C99700; border-radius:8px; padding:14px 18px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-family:'Open Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#C99700;">ML Classification ({method_label})</span>
+                    <span style="font-family:'Open Sans',sans-serif; font-size:0.68rem; color:#888;">Local prediction &mdash; no API cost</span>
+                </div>
+                <div style="font-family:'Open Sans',sans-serif; font-size:0.92rem; color:#2D2D2D;">
+                    <strong>Predicted Family:</strong> {top_pred[0]} ({top_pred[1]}% ML probability)
+                </div>
+                <div style="font-family:'Open Sans',sans-serif; font-size:0.78rem; color:#666; margin-top:6px;">
+                    {' &middot; '.join(f'{cls}: {pct}%' for cls, pct in sorted_probs[:4])}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── Extract agent pipeline results ──
+        primary = agent_result.get("primary", {})
+        secondary = agent_result.get("secondary")
+        classification_type = agent_result.get("classification_type", "SINGLE")
+        weighted_salary = agent_result.get("weighted_salary")
+        explanation = agent_result.get("explanation", "")
+
+        primary_code = primary.get("career_group_code")
+        primary_name = primary.get("career_group_name", "Unknown")
+        primary_conf = primary.get("confidence", 0)
+        primary_reasoning = primary.get("reasoning", "")
+
+        # ══════════════════════════════════════════════════
+        #  BLEND CARD (only for BLENDED classifications)
+        # ══════════════════════════════════════════════════
+        if classification_type == "BLENDED" and secondary:
+            _render_blend_card(primary, secondary, weighted_salary, ml_result=ml_result)
+
+        # ══════════════════════════════════════════════════
+        #  CARD 1: Best Match (primary role from agent)
+        # ══════════════════════════════════════════════════
+        r1_code = primary.get("role_code")
+        r1_name = clean_role_name(primary.get("role_name", "Unknown"))
+        r1_conf = primary_conf
+        r1_band, r1_pay, r1_wm = _lookup_role_details(r1_code, posted_salary=posted_salary)
+        # Use agent-reported pay_band if lookup fails
+        if r1_band is None and primary.get("pay_band"):
+            r1_band = primary["pay_band"]
+            r1_pay = get_pay_info(r1_band)
+            r1_wm = get_wm_grade(r1_band, posted_salary=posted_salary)
+
+        # Look up ML probability for the primary career group
+        r1_ml_prob = _lookup_ml_prob(primary_code, ml_result)
+
+        _render_match_card(
+            medal=MEDALS[0],
+            role_name=r1_name,
+            badge_label=BADGE_LABELS[0],
+            badge_class=BADGE_CLASSES[0],
+            card_class=CARD_CLASSES[0],
+            bar_color=BAR_COLORS[0],
+            confidence=r1_conf,
+            career_group_label=f"{primary_code} - {primary_name}",
+            band=r1_band,
+            pay=r1_pay,
+            wm=r1_wm,
+            reasoning=primary_reasoning,
+            ml_prob=r1_ml_prob,
+            ai_conf=r1_conf,
+        )
+
+        # AI detailed explanation from agent narrative
+        if use_ai_explanation and explanation:
+            explanation_html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', explanation)
+            st.markdown(
+                f'<div class="ai-block">'
+                f'<div class="ai-block-label">AI Classification Rationale</div>'
+                f'<p class="ai-block-text">{explanation_html}</p>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
+        # ══════════════════════════════════════════════════
+        #  BLENDED Secondary Card (only for BLENDED)
+        # ══════════════════════════════════════════════════
+        if classification_type == "BLENDED" and secondary:
+            r2_code = secondary.get("role_code")
+            r2_name = clean_role_name(secondary.get("role_name", "Unknown"))
+            r2_conf = secondary.get("confidence", 0)
+            r2_reasoning = secondary.get("reasoning", "")
+            s_code = secondary.get("career_group_code")
+            s_name = secondary.get("career_group_name", "Unknown")
+            r2_band, r2_pay, r2_wm = _lookup_role_details(r2_code, posted_salary=posted_salary)
+            if r2_band is None and secondary.get("pay_band"):
+                r2_band = secondary["pay_band"]
+                r2_pay = get_pay_info(r2_band)
+                r2_wm = get_wm_grade(r2_band, posted_salary=posted_salary)
+
+            r2_ml_prob = _lookup_ml_prob(s_code, ml_result)
+
+            _render_match_card(
+                medal=MEDALS[1],
+                role_name=r2_name,
+                badge_label="Secondary Role",
+                badge_class=BADGE_CLASSES[1],
+                card_class=CARD_CLASSES[1],
+                bar_color=BAR_COLORS[1],
+                confidence=r2_conf,
+                career_group_label=f"{s_code} - {s_name}",
+                band=r2_band,
+                pay=r2_pay,
+                wm=r2_wm,
+                reasoning=r2_reasoning,
+                ml_prob=r2_ml_prob,
+                ai_conf=r2_conf,
+            )
+
+        # ══════════════════════════════════════════════════
+        #  CARD 2: Alternative Role (2nd role in primary group)
+        # ══════════════════════════════════════════════════
+        alt_role = agent_result.get("alternative_role")
+        if alt_role and alt_role.get("role_code"):
+            ar_code = alt_role.get("role_code")
+            ar_name = clean_role_name(alt_role.get("role_name", "Unknown"))
+            ar_conf = alt_role.get("confidence", 0)
+            ar_reasoning = alt_role.get("reasoning", "")
+            ar_band, ar_pay, ar_wm = _lookup_role_details(ar_code, posted_salary=posted_salary)
+            if ar_band is None and alt_role.get("pay_band"):
+                ar_band = alt_role["pay_band"]
+                ar_pay = get_pay_info(ar_band)
+                ar_wm = get_wm_grade(ar_band, posted_salary=posted_salary)
+
+            # ML probability uses the PRIMARY career group (same group)
+            ar_ml_prob = _lookup_ml_prob(primary_code, ml_result)
+
+            _render_match_card(
+                medal=MEDALS[1],
+                role_name=ar_name,
+                badge_label=BADGE_LABELS[1],
+                badge_class=BADGE_CLASSES[1],
+                card_class=CARD_CLASSES[1],
+                bar_color=BAR_COLORS[1],
+                confidence=ar_conf,
+                career_group_label=f"{primary_code} - {primary_name}",
+                band=ar_band,
+                pay=ar_pay,
+                wm=ar_wm,
+                reasoning=ar_reasoning,
+                ml_prob=ar_ml_prob,
+                ai_conf=ar_conf,
+            )
+
+        # ══════════════════════════════════════════════════
+        #  CARD 3: Alternative Career Group
+        # ══════════════════════════════════════════════════
+        alt_group = agent_result.get("alternative_group")
+        if alt_group and alt_group.get("role_code"):
+            ag_code = alt_group.get("role_code")
+            ag_name = clean_role_name(alt_group.get("role_name", "Unknown"))
+            ag_conf = alt_group.get("confidence", 0)
+            ag_reasoning = alt_group.get("reasoning", "")
+            ag_cg_code = alt_group.get("career_group_code")
+            ag_cg_name = alt_group.get("career_group_name", "Unknown")
+            ag_band, ag_pay, ag_wm = _lookup_role_details(ag_code, posted_salary=posted_salary)
+            if ag_band is None and alt_group.get("pay_band"):
+                ag_band = alt_group["pay_band"]
+                ag_pay = get_pay_info(ag_band)
+                ag_wm = get_wm_grade(ag_band, posted_salary=posted_salary)
+
+            # ML probability uses the ALTERNATIVE career group code
+            ag_ml_prob = _lookup_ml_prob(ag_cg_code, ml_result)
+
+            _render_match_card(
+                medal=MEDALS[2],
+                role_name=ag_name,
+                badge_label=BADGE_LABELS[2],
+                badge_class=BADGE_CLASSES[2],
+                card_class=CARD_CLASSES[2],
+                bar_color=BAR_COLORS[2],
+                confidence=ag_conf,
+                career_group_label=f"{ag_cg_code} - {ag_cg_name}",
+                band=ag_band,
+                pay=ag_pay,
+                wm=ag_wm,
+                reasoning=ag_reasoning,
+                ml_prob=ag_ml_prob,
+                ai_conf=ag_conf,
+            )
+
+        # ── Download button (Full Analysis) ──
+        if _EXPORT_AVAILABLE:
+            try:
+                _export_classification = dict(agent_result)
+                _export_classification.pop("raw_response", None)
+                report_bytes = generate_classification_report(
+                    pd_text=job,
+                    classification_result=_export_classification,
+                    ml_result=ml_result,
+                    mode=result_mode,
+                    posted_salary=posted_salary,
+                )
+                st.download_button(
+                    label="\U0001f4c4 Download Classification Report",
+                    data=report_bytes,
+                    file_name=f"GRIFFIN_Classification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    key=f"dl_full_{job_idx}",
+                )
+            except Exception:
+                pass  # Silent — export is non-critical
+
+        # ── Confirm Classification button (Full Analysis only) ──
+        _confirm_key = f"confirm_{job_idx}"
+        _confirmed_state_key = f"confirmed_{job_idx}"
+        if st.button("\u2713 Confirm This Classification is Correct",
+                     key=_confirm_key):
+            # Map career group -> occupational family via reference data
+            _occ_family = ""
+            _cg_code = primary.get("career_group_code")
+            if _cg_code is not None:
+                _cg_match = career_groups_df[
+                    career_groups_df["career_group_code"] == _cg_code
+                ]
+                if not _cg_match.empty:
+                    _occ_family = _cg_match.iloc[0]["occupational_family"]
+
+            _queue_path = os.path.join(PROJECT_ROOT, "data", "training",
+                                       "confirmed_queue.csv")
+            _queue_dir = os.path.dirname(_queue_path)
+            os.makedirs(_queue_dir, exist_ok=True)
+
+            _file_exists = os.path.isfile(_queue_path)
+            _row = [
+                datetime.now().isoformat(),
+                job,
+                str(primary.get("career_group_code", "")),
+                primary.get("career_group_name", ""),
+                primary.get("role_name", ""),
+                str(primary.get("pay_band", "")),
+                _occ_family,
+                classification_type,
+                "app_user",
+            ]
+            with open(_queue_path, "a", newline="", encoding="utf-8") as _f:
+                writer = csv.writer(_f)
+                if not _file_exists:
+                    writer.writerow([
+                        "timestamp", "pd_text", "career_group_code",
+                        "career_group_name", "role_name", "pay_band",
+                        "occ_family", "classification_type", "confirmed_by",
+                    ])
+                writer.writerow(_row)
+
+            st.session_state[_confirmed_state_key] = True
+
+        if st.session_state.get(_confirmed_state_key):
+            st.success(
+                "Classification saved to training queue. "
+                "Thank you \u2014 this helps GRIFFIN learn."
+            )
+
+        if job_idx < total_jobs - 1:
+            st.markdown('<hr class="gold-divider">', unsafe_allow_html=True)
+
+    # ── Methodology info box (after all cards) ──
+    st.markdown('<hr class="gold-divider">', unsafe_allow_html=True)
+    last_ml = results_list[-1]["ml_result"]
+    last_mode = results_list[-1]["mode"]
+    ml_method_str = last_ml['method'] if last_ml else 'unavailable'
+
+    if last_mode == "Fast Mode":
+        st.markdown(f"""
 <div style="background:#F0F7F4; border:1px solid #B8D8CC; border-radius:8px; padding:16px 20px; margin:20px 0;">
     <div style="font-family:'Open Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#115740; margin-bottom:8px;">Fast Mode &mdash; ML Classification</div>
     <div style="font-family:'Open Sans',sans-serif; font-size:0.85rem; color:#2D2D2D; line-height:1.7;">
@@ -999,14 +1272,14 @@ if run:
     </div>
 </div>
 """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
+    else:
+        st.markdown(f"""
 <div style="background:#F0F7F4; border:1px solid #B8D8CC; border-radius:8px; padding:16px 20px; margin:20px 0;">
     <div style="font-family:'Open Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#115740; margin-bottom:8px;">Dual-Method Classification</div>
     <div style="font-family:'Open Sans',sans-serif; font-size:0.85rem; color:#2D2D2D; line-height:1.7;">
         <strong style="color:#C99700;">ML ({ml_method_str}):</strong> Trained on 100 W&amp;M position descriptions with 15 engineered features. Predicts occupational family. Runs locally &mdash; zero API cost.<br>
         <strong style="color:#115740;">Agentic AI (Gemini 2.5 Flash):</strong> Classifies against the full DHRM taxonomy (56 career groups, 294 roles) using LLM reasoning. Provides explainable rationale.<br><br>
-        <em style="color:#555;">Both methods are advisory. When ML and AI agree, confidence is high. When they disagree, the classification warrants human review. Final authority rests with HR professionals.</em>
+        <em style="color:#555;">Both methods are advisory. <strong>ML Probability</strong> is statistically computed from model predictions; <strong>AI Assessment</strong> is the language model's self-reported confidence and is not a statistical metric. When both metrics agree and are high, confidence in the classification is strong. When they disagree, the classification warrants human review. Final authority rests with HR professionals.</em>
     </div>
 </div>
 """, unsafe_allow_html=True)

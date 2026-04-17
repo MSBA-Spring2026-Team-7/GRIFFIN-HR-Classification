@@ -1,20 +1,22 @@
 # requirements.txt — Streamlit Community Cloud deployment
-# Generated from environment.yml for the griffin conda env.
-# Canonical dev env is environment.yml; this file is the Streamlit Cloud build source.
+# Canonical dev env is environment-local.yml; this file is the Streamlit Cloud build source.
 # See docs/DEPLOYMENT.md for the deployment runbook.
 #
 # Scope: this file lists ONLY the packages the deployed Streamlit app imports
 # (streamlit_app.py + feature_extraction.py + ml_classifier.py). Notebook-only
 # deps (shap, requests, beautifulsoup4, sqlalchemy, pymysql, lxml) live in
 # environment.yml and are NOT installed on Streamlit Cloud — keeping the
-# cloud build fast and under the 1 GB free-tier memory cap.
+# cloud build fast and under the Streamlit Cloud memory cap.
 
 # --- Streamlit + UI ---
 streamlit>=1.32
 
-# --- LLM (Gemini) ---
+# --- LLM (Gemini via LangChain agent pipeline) ---
 google-generativeai>=0.5
 python-dotenv>=1.0
+langchain>=0.3
+langgraph>=0.2
+langchain-google-genai>=2.0
 
 # --- Data handling ---
 pandas>=2.0
@@ -24,3 +26,6 @@ openpyxl>=3.1
 # --- ML (sklearn fallback always-on; H2O primary, lazy-loaded behind button) ---
 scikit-learn>=1.3
 h2o>=3.46
+
+# --- Document export ---
+python-docx>=1.1

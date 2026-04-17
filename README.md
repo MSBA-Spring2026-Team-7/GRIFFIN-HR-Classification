@@ -13,6 +13,10 @@
 
 **Project Board:** [GitHub Projects Kanban](https://github.com/orgs/MSBA-Spring2026-Team-7/projects/1)
 
+> **Start Here →** HR Directors: [`Implementation Playbook`](docs/GRIFFIN_Implementation_Playbook.docx) · IT Teams: [`Technical Transition Guide`](docs/GRIFFIN_Technical_Transition_Guide.docx) · HR Staff: [`User Guide`](docs/GRIFFIN_HR_User_Guide.pptx) · [`Quick Reference`](docs/GRIFFIN_Quick_Reference.docx)
+>
+> **More docs →** [`Data Dictionary`](docs/GRIFFIN_Data_Dictionary.xlsx) · [`Implementation Briefing Deck`](docs/GRIFFIN_Implementation_Briefing.pptx) · [`Technical Briefing Deck`](docs/GRIFFIN_Technical_Transition_Guide.pptx) · [`Data Onboarding Guide`](docs/client-data-onboarding/README.md) · [`Lessons Learned`](docs/GRIFFIN-Lessons-Learned.md)
+
 | | |
 |---|---|
 | **Course** | BUAD 5742 — Artificial Intelligence (Spring 2026) |
@@ -57,7 +61,7 @@ graph TB
     E --> G
     F --> G
     G --> H[DHRM to University Pay-Grade Crosswalk]
-    H --> I[Streamlit Web UI<br/>ranked cards + rationale + SHAP]
+    H --> I[Streamlit Web UI<br/>ranked cards + rationale]
 ```
 
 *See `app/streamlit_app.py` for the deployed app, `notebooks/5_h2o_automl.ipynb` for the ML layer, and `app/griffin_langchain_agents.py` for the agent system.*
@@ -93,7 +97,7 @@ GRIFFIN addresses a narrowly defined classification problem:
 - **Classification target:** one of 56 Virginia DHRM career groups, and within that group, one of approximately 294 roles.
 - **Output 1 — Top-3 ranked matches:** career group + role + confidence score (1–100) + plain-language rationale for each candidate, so the reviewer can see alternatives rather than a single opaque answer.
 - **Output 2 — Pay-band recommendation:** the DHRM pay band (1–9) tied to the matched role, plus a crosswalked university pay grade (e.g., S18) and salary range derived from public Commonwealth of Virginia compensation data.
-- **Output 3 — Explainability:** SHAP feature-importance for the ML layer, plus a structured LLM narrative that cites specific duties from the PD and maps them to DHRM compensable factors (Complexity, Results, Accountability).
+- **Output 3 — Explainability:** SHAP feature-importance analysis is performed during model training (notebook 5) and available as a reference artifact. In the deployed app, explainability is provided through structured LLM narratives that cite specific duties from the PD and map them to DHRM compensable factors (Complexity, Results, Accountability).
 
 ### Out of Scope
 
@@ -166,15 +170,17 @@ The censoring pipeline in notebook 3 is worth highlighting: it applies 30+ skip 
 
 ### 4.3 ML Model (Layer 2)
 
-Layer 2 uses a **counterbalance architecture**: H2O AutoML as the primary model, scikit-learn as an always-on fallback, and lazy loading to keep the Streamlit Cloud free-tier build under its 1 GB memory cap.
+Layer 2 uses a **counterbalance architecture**: H2O AutoML as the primary model, scikit-learn as an always-on fallback, and lazy loading to keep the Streamlit Cloud free-tier build under its 1 GB memory cap. In the free-tier Streamlit Cloud deployment, the scikit-learn GBM fallback serves classifications because the H2O JVM requires more RAM than the 1 GB budget allows; locally and on adequately provisioned infrastructure, H2O serves as the primary classifier with background JVM warmup.
 
-- **H2O AutoML.** 80 models trained over 5-fold stratified cross-validation. Best model: a Gradient Boosting Machine (GBM) with learning-rate annealing. On the held-out folds the GBM achieves roughly **69% top-1** and **90% top-3** accuracy, with a macro-F1 of **0.54** — the macro-F1 reflects real class imbalance (Administrative Services dominates the training set at 55/103 records; the smallest classes have only 3–4 records each). Full numbers and confusion matrices are in [`notebooks/5_h2o_automl.ipynb`](notebooks/5_h2o_automl.ipynb).
+- **H2O AutoML.** 80 models trained over 5-fold stratified cross-validation. Best model: a Gradient Boosting Machine (GBM) with learning-rate annealing. On the held-out folds the GBM achieves roughly **69% top-1** and **90% top-3** accuracy, with a macro-F1 of **0.54** — the macro-F1 reflects real class imbalance (Administrative Services dominates the training set at 55/103 records; the smallest classes have only 3–4 records each). The 90% top-3 accuracy means the correct classification appears in the reviewer's ranked recommendation list in 9 of 10 cases, shifting the HR analyst's task from open-ended classification to confirming or selecting from a short list. Full numbers and confusion matrices are in [`notebooks/5_h2o_automl.ipynb`](notebooks/5_h2o_automl.ipynb).
 - **scikit-learn fallback.** `app/ml_classifier.py` also trains a lightweight sklearn classifier that loads in ~50 MB at app boot. This is the path used in Fast Mode and whenever H2O is unavailable (e.g., no JVM, hitting the Cloud memory cap). The fallback is not an afterthought — it is a first-class citizen of the architecture so the app degrades gracefully rather than erroring.
-- **SHAP explainability.** Global feature-importance and per-prediction explanations are generated in notebook 5 using the `shap` library. The Streamlit UI surfaces the top contributing features for each classification.
+- **SHAP explainability.** Global feature-importance and per-prediction explanations are generated in notebook 5 using the `shap` library. The summary plot below shows which features the ML model weighs most heavily when classifying position descriptions — this is the audit trail for understanding how the model makes decisions. The deployed app provides per-classification explainability through structured LLM narratives; SHAP integration into the live UI is planned for a future release.
+
+![SHAP Feature Importance](reports/shap_feature_importance.png)
 
 ### 4.4 LangChain Agent System (Layer 3)
 
-Layer 3 is a three-agent LangChain pipeline driven by **Google Gemini (`gemini-2.5-flash`)**. The architecture follows the orchestrator-worker pattern used in the BUAD 5742 class materials.
+Layer 3 is a three-agent LangChain pipeline driven by **Google Gemini (`gemini-2.5-flash`)**, integrated directly into the Streamlit application (not a separate script). The architecture follows the orchestrator-worker pattern used in the BUAD 5742 class materials. The system qualifies as genuinely *agentic*: agents autonomously select and invoke tools based on the input PD, maintain conversational memory via `InMemorySaver`, and the orchestrator coordinates multi-step reasoning across sub-agents rather than following a fixed sequential prompt chain.
 
 ```mermaid
 graph TB
@@ -200,7 +206,9 @@ The full agent code lives at [`app/griffin_langchain_agents.py`](app/griffin_lan
 The user-facing layer is a single-file Streamlit app: [`app/streamlit_app.py`](app/streamlit_app.py). It is deployed live at **[https://griffin-hr-classifier.streamlit.app](https://griffin-hr-classifier.streamlit.app)**.
 
 - **Two run modes.** *Fast Mode* uses only the sklearn classifier and returns results in under a second. *Full Analysis* adds the H2O AutoML model and the Gemini agent pipeline, takes 15–30 seconds, and produces a detailed LLM rationale for each of the top-3 matches.
-- **Ranked cards.** The UI renders the top-3 career-group candidates as cards, each showing the career-group name, the matched role, the DHRM pay band, the university pay grade, a confidence score, and an expandable rationale.
+- **Three-card triangulation.** The UI renders three recommendation cards — **Best Match**, **Alternative Role**, and **Alternative Group** — giving the reviewer a triangulated view rather than a single opaque answer. Each card shows the career-group name, the matched role, the DHRM pay band, the university pay grade, and an expandable rationale.
+- **Dual confidence metrics.** Every recommendation carries two independent scores: an **ML Probability** (statistical confidence from the classifier) and an **AI Assessment** (LLM self-reported confidence), so the reviewer can gauge agreement between the two methods.
+- **Word document export.** Users can export a complete classification report as a downloadable Word (.docx) document for offline review, record-keeping, or sharing with stakeholders who do not access the web app.
 - **Secrets handling.** The app reads the Gemini API key from `st.secrets["GEMINI_API_KEY"]` (Streamlit Cloud), falling back to `os.environ` for local development via `python-dotenv`. Both `GEMINI_API_KEY` and `GOOGLE_API_KEY` are accepted for backward compatibility. See [`app/streamlit_app.py`](app/streamlit_app.py) lines 38–61 for the resolution logic.
 - **Lazy H2O loading.** Streamlit Cloud's free tier budgets about 1 GB of RAM. Booting the H2O JVM at app import would consume most of that before a user did anything, so H2O is loaded only when the user clicks **Load ML reference model** in the sidebar. The sklearn fallback is pre-warmed at boot.
 
@@ -289,7 +297,7 @@ AI models trained on real-world data can inadvertently encode and perpetuate soc
 
 ### Explicability — transparency and explainability
 
-A common criticism of AI systems is that they are opaque "black boxes." GRIFFIN addresses this at three levels: (1) the ML layer produces **SHAP global feature-importance and per-prediction explanations** via the `shap` library; (2) the LLM layer produces a **structured reasoning narrative** that cites specific duties from the PD and maps them to DHRM compensable factors (Complexity, Results, Accountability); and (3) the LangChain agent pipeline is **auditable end-to-end** — classifier, pay matcher, orchestrator, and their tool calls are all visible in `app/griffin_langchain_agents.py` and produce traceable intermediate output rather than a single unexplained answer.
+A common criticism of AI systems is that they are opaque "black boxes." GRIFFIN addresses this at three levels: (1) the ML layer produces **SHAP global feature-importance and per-prediction explanations** via the `shap` library during model training (notebook 5), available as reference artifacts; (2) the deployed app provides explainability through **structured LLM narratives** that cite specific duties from the PD and map them to DHRM compensable factors (Complexity, Results, Accountability); and (3) the LangChain agent pipeline is **auditable end-to-end** — classifier, pay matcher, orchestrator, and their tool calls are all visible in `app/griffin_langchain_agents.py` and produce traceable intermediate output rather than a single unexplained answer.
 
 ### Privacy and Data Ethics
 
@@ -301,7 +309,7 @@ All credentials (Gemini, Tavily, CareerOneStop) are loaded from environment vari
 
 ### Known Limitations
 
-The responsible-AI work is not finished and never will be. The most important open items: (a) the training set is small and imbalanced, so confidence on underrepresented career groups is inherently lower — this is why GRIFFIN always returns a top-3 ranked list with alternatives; (b) the LLM layer depends on a hosted API (Google Gemini), which introduces a data-flow consideration for any future deployment handling confidential PDs; and (c) a production deployment would need a recurring bias audit cadence (see §5, Concerns and Risks for Scaling).
+The responsible-AI work is not finished and never will be. The most important open items: (a) the training set is small and imbalanced, so confidence on underrepresented career groups is inherently lower — this is why GRIFFIN always returns a top-3 ranked list with alternatives; (b) the LLM layer depends on a hosted API (Google Gemini), which introduces a data-flow consideration for any future deployment handling confidential PDs; (c) a production deployment would need a recurring bias audit cadence (see §5, Concerns and Risks for Scaling); and (d) the AI Assessment confidence score is the LLM's own self-reported estimate and has not been calibrated against held-out ground truth — it should be interpreted qualitatively as an expert's professional judgment, not as a statistical probability.
 
 ---
 

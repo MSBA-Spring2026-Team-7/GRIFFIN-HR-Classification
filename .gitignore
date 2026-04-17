@@ -1,8 +1,15 @@
 # Cached raw data (large, regenerable)
 data/cache/
 
-# H2O model artifacts
-models/
+# Confirmed classification queue (contains PD text, not for public repo)
+data/training/confirmed_queue.csv
+
+# Office temp/lock files
+~$*
+
+# H2O model artifacts — UN-IGNORED so inheriting team gets the models
+# (H2O can't run on Streamlit Cloud free tier, but works locally)
+# models/
 
 # CQM sessions
 cqm-sessions/
@@ -49,6 +56,10 @@ _temp holding/
 # on 2026-04-14 to present a polished final deliverable on GitHub.
 # Contents are retained on the Owner's local filesystem only.
 _local_archive/
+
+# Rendered HTML build artifacts (regenerable from .md source)
+QUICK_START.html
+docs/DEPLOYMENT.html
 
 # Downloaded Streamlit Cloud build logs (ephemeral debug artifacts)
 logs-*.txt

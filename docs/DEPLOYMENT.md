@@ -5,7 +5,7 @@ The GRIFFIN HR Classification app is deployed on Streamlit Community Cloud
 from the `main` branch of `MSBA-Spring2026-Team-7/GRIFFIN-HR-Classification`.
 
 ## Live URL
-[to be filled in after first deployment: https://<slug>.streamlit.app]
+https://griffin-hr-classifier.streamlit.app
 
 ## Architecture
 - **Source:** GitHub `MSBA-Spring2026-Team-7/GRIFFIN-HR-Classification` (public)
@@ -85,6 +85,24 @@ H2O is only needed if the user explicitly opts in to see the H2O AutoML
 reference prediction used during training.
 
 Do not call `h2o.init()` at app import time — it will OOM the free tier.
+
+## API Key Monitoring (Important for Ongoing Use)
+
+The Gemini API key stored in Streamlit Cloud Secrets has no automated monitoring.
+If the key expires, is revoked, or hits its quota, Full Analysis mode will fail
+with a generic error. Fast Mode (ML-only) continues to work regardless.
+
+**Recommended monitoring for production use:**
+- Check the Streamlit Cloud logs weekly for Gemini API errors
+- Set a calendar reminder to verify the API key before each semester/fiscal year
+- Consider adding a health-check banner to the app that tests the API on startup
+  and displays "AI classification temporarily unavailable — using ML-only mode"
+  rather than failing silently (see Future Development Taskers in the Technical
+  Transition Guide)
+- Rotate the key at https://aistudio.google.com/app/apikey if compromised
+
+**To update the key:** Streamlit Cloud dashboard → App settings → Secrets → edit
+`GEMINI_API_KEY` value → save. The app restarts automatically.
 
 ## Owner
 Steven Alvarado (Team 7 lead). For access questions, contact via GitHub

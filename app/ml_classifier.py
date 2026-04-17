@@ -44,7 +44,11 @@ def _get_h2o_model():
 
     try:
         import h2o
-        h2o.init(nthreads=1, max_mem_size="512M", verbose=False)
+        # Use all available cores and more RAM locally. On Streamlit Cloud
+        # H2O can't run anyway (1GB free tier), so this only affects local dev.
+        import multiprocessing
+        _ncores = max(1, multiprocessing.cpu_count() - 1)  # leave 1 core for the OS
+        h2o.init(nthreads=_ncores, max_mem_size="1G", verbose=False)
         model_path = str(
             _MODEL_DIR
             / "GBM_lr_annealing_selection_AutoML_1_20260408_205246_select_model"
@@ -70,7 +74,11 @@ def _try_h2o_predict(features_df):
     try:
         h2o_frame = h2o_mod.H2OFrame(features_df)
         pred = model.predict(h2o_frame)
-        result = pred.as_data_frame()
+        # Use multi-threaded conversion if polars/pyarrow available (local dev)
+        try:
+            result = pred.as_data_frame(use_multi_thread=True)
+        except TypeError:
+            result = pred.as_data_frame()
 
         predicted_class = result['predict'].iloc[0]
         prob_cols = [c for c in result.columns if c != 'predict']
