@@ -64,8 +64,18 @@ def _get_h2o_model():
 
 
 def _try_h2o_predict(features_df):
-    """Attempt prediction with the cached H2O GBM model."""
-    import h2o as h2o_mod
+    """Attempt prediction with the cached H2O GBM model.
+
+    Returns None (not raises) when h2o is not installed, so the caller
+    can fall back to sklearn. This matters on Streamlit Community Cloud,
+    where the h2o package is intentionally omitted from requirements.txt
+    to stay under the 1 GB memory tier — see requirements.txt comments.
+    """
+    try:
+        import h2o as h2o_mod
+    except ImportError:
+        # h2o not installed (Cloud deploy) — signal fallback to sklearn
+        return None
 
     model = _get_h2o_model()
     if model is None:

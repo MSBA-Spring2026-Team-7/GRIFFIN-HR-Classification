@@ -965,9 +965,24 @@ if st.session_state.classification_results:
                 # ── Download button (Fast Mode) ──
                 if _EXPORT_AVAILABLE:
                     try:
+                        # Mirror UI: attach resolved ML family match pay/wm so
+                        # the .docx shows the Estimated Pay block under the
+                        # ML Prediction card, not just probabilities.
+                        fast_mode_payload = {}
+                        if not ml_cg_match.empty:
+                            fast_mode_payload["fast_mode_pay_match"] = {
+                                "career_group_code": str(ml_cg_match.iloc[0]["career_group_code"]),
+                                "career_group_name": ml_cg_match.iloc[0]["career_group_name"],
+                                "pay_band_min": ml_band_min,
+                                "pay_band_max": ml_band_max,
+                                "pay_band_mid": ml_band_mid,
+                                "pay": ml_pay,
+                                "wm": ml_wm,
+                            }
+
                         report_bytes = generate_classification_report(
                             pd_text=job,
-                            classification_result={},
+                            classification_result=fast_mode_payload,
                             ml_result=ml_result,
                             mode=result_mode,
                             posted_salary=posted_salary,
@@ -1063,6 +1078,14 @@ if st.session_state.classification_results:
             ai_conf=r1_conf,
         )
 
+        # Attach locally-resolved pay/wm/band back to the source dict so the
+        # .docx export (which shallow-copies agent_result) picks them up.
+        if primary:
+            primary["band"] = r1_band
+            primary["pay_band"] = r1_band
+            primary["pay"] = r1_pay
+            primary["wm"] = r1_wm
+
         # AI detailed explanation from agent narrative
         if use_ai_explanation and explanation:
             explanation_html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', explanation)
@@ -1144,6 +1167,12 @@ if st.session_state.classification_results:
                 ai_conf=ar_conf,
             )
 
+            # Attach enriched fields so .docx export sees Salary Range + W&M Grade
+            alt_role["band"] = ar_band
+            alt_role["pay_band"] = ar_band
+            alt_role["pay"] = ar_pay
+            alt_role["wm"] = ar_wm
+
         # ══════════════════════════════════════════════════
         #  CARD 3: Alternative Career Group
         # ══════════════════════════════════════════════════
@@ -1180,6 +1209,12 @@ if st.session_state.classification_results:
                 ml_prob=ag_ml_prob,
                 ai_conf=ag_conf,
             )
+
+            # Attach enriched fields so .docx export sees Salary Range + W&M Grade
+            alt_group["band"] = ag_band
+            alt_group["pay_band"] = ag_band
+            alt_group["pay"] = ag_pay
+            alt_group["wm"] = ag_wm
 
         # ── Download button (Full Analysis) ──
         if _EXPORT_AVAILABLE:
@@ -1312,6 +1347,25 @@ with st.sidebar:
                         )
                 except Exception as e:
                     st.error(f"H2O load failed: {e}. Using sklearn fallback.")
+
+    # ── Deployment notes — surface Cloud vs local architecture for graders/users ──
+    with st.expander("Deployment notes (why sklearn on Cloud?)", expanded=False):
+        st.markdown("""
+**This app is deployed on Streamlit Community Cloud (1 GB memory tier).**
+
+H2O AutoML is GRIFFIN's primary classifier in local and notebook
+development (higher accuracy on the Workday features set), but the
+h2o package plus JVM footprint exceeds the Cloud memory cap. The
+Cloud build therefore ships sklearn GBM, which has been serving
+classifications reliably since launch — `ml_classifier.py` was
+designed from day one to fall back cleanly when H2O is unavailable.
+
+To see the full H2O AutoML pipeline (feature selection, leaderboard,
+SHAP analysis), check **Notebook 5** in the GitHub repo.
+
+_Updated 2026-04-20 after migrating the Cloud deploy off H2O to
+resolve a memory-cap incident._
+""")
 
     st.markdown("---")
     st.markdown("### GRIFFIN Data Explorer")
