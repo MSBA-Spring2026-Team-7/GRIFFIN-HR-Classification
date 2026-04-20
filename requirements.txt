@@ -23,9 +23,16 @@ pandas>=2.0
 numpy>=1.24
 openpyxl>=3.1
 
-# --- ML (sklearn fallback always-on; H2O primary, lazy-loaded behind button) ---
+# --- ML (sklearn for Cloud deploy; H2O for local/notebook dev) ---
+# H2O is our primary classifier in local and notebook environments (higher
+# accuracy on the Workday features set), but the h2o Python package + JVM
+# footprint exceeds Streamlit Community Cloud's 1 GB memory tier. The Cloud
+# build therefore ships sklearn only; ml_classifier.py transparently falls
+# back to the sklearn GBM when H2O is unavailable (see ml_classifier.py:60).
+# FUTURE ROLLOUT: if we migrate to Streamlit in Snowflake or any paid tier
+# with >=2 GB RAM, re-enable H2O by uncommenting the line below.
 scikit-learn>=1.3
-h2o>=3.46
+# h2o>=3.46  # disabled on Streamlit Cloud — over 1 GB memory cap; see note above
 
 # --- Document export ---
 python-docx>=1.1

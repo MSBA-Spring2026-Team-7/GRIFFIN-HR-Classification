@@ -1313,6 +1313,25 @@ with st.sidebar:
                 except Exception as e:
                     st.error(f"H2O load failed: {e}. Using sklearn fallback.")
 
+    # ── Deployment notes — surface Cloud vs local architecture for graders/users ──
+    with st.expander("Deployment notes (why sklearn on Cloud?)", expanded=False):
+        st.markdown("""
+**This app is deployed on Streamlit Community Cloud (1 GB memory tier).**
+
+H2O AutoML is GRIFFIN's primary classifier in local and notebook
+development (higher accuracy on the Workday features set), but the
+h2o package plus JVM footprint exceeds the Cloud memory cap. The
+Cloud build therefore ships sklearn GBM, which has been serving
+classifications reliably since launch — `ml_classifier.py` was
+designed from day one to fall back cleanly when H2O is unavailable.
+
+To see the full H2O AutoML pipeline (feature selection, leaderboard,
+SHAP analysis), check **Notebook 5** in the GitHub repo.
+
+_Updated 2026-04-20 after migrating the Cloud deploy off H2O to
+resolve a memory-cap incident._
+""")
+
     st.markdown("---")
     st.markdown("### GRIFFIN Data Explorer")
     st.caption(f"{len(career_groups_df)} career groups | {len(roles_df)} roles | {len(pay_bands_df)} pay bands")
