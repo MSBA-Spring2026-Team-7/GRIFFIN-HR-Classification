@@ -347,7 +347,7 @@ def generate_classification_report(
     _set_paragraph_spacing(mode_para, before=0, after=4)
 
     if mode == "Fast Mode":
-        _render_fast_mode_section(doc, ml_result)
+        _render_fast_mode_section(doc, ml_result, classification_result)
     else:
         _render_full_analysis_section(doc, classification_result)
 
@@ -410,8 +410,14 @@ def generate_classification_report(
 #  Section renderers
 # ============================================================
 
-def _render_fast_mode_section(doc, ml_result):
-    """Render the Fast Mode results section (ML-only)."""
+def _render_fast_mode_section(doc, ml_result, classification_result=None):
+    """Render the Fast Mode results section (ML-only).
+
+    Order mirrors the Streamlit UI:
+      1. ML prediction summary (family, confidence, method)
+      2. Estimated Pay from ML Family Match (if supplied)
+      3. All Occupational Family Probabilities table
+    """
     if not ml_result:
         _add_body_text(doc, "No ML prediction available.", italic=True, color=MED_GRAY)
         return
@@ -429,6 +435,52 @@ def _render_fast_mode_section(doc, ml_result):
     _add_key_value(doc, "Predicted Occupational Family", top_family)
     _add_key_value(doc, "ML Confidence", f"{top_conf}%")
     _add_key_value(doc, "Method", ml_result.get("method", "Unknown"))
+
+    # ── Estimated Pay (from ML Family Match) ──────────────────
+    # Populated by streamlit_app.py when the top ML family maps to a career
+    # group with a resolved pay band range. Skipped gracefully otherwise.
+    pay_match = (classification_result or {}).get("fast_mode_pay_match")
+    if pay_match:
+        doc.add_paragraph()  # spacer
+        _add_body_text(doc, "Estimated Pay (from ML Family Match)", bold=True, color=WM_GREEN)
+        _add_key_value(
+            doc, "Career Group",
+            f"{pay_match.get('career_group_code', '?')} - {pay_match.get('career_group_name', '?')}",
+        )
+        _add_key_value(
+            doc, "Pay Band Range",
+            f"{pay_match.get('pay_band_min', '?')}-{pay_match.get('pay_band_max', '?')}",
+        )
+        pay = pay_match.get("pay")
+        band_mid = pay_match.get("pay_band_mid", "?")
+        if pay is not None:
+            try:
+                pay_min = pay.get("minimum_salary") if hasattr(pay, "get") else pay["minimum_salary"]
+                pay_max = pay.get("maximum_salary") if hasattr(pay, "get") else pay["maximum_salary"]
+                _add_key_value(
+                    doc, f"DHRM Salary (Band {band_mid})",
+                    f"{_format_salary(pay_min)} - {_format_salary(pay_max)}",
+                )
+            except (KeyError, TypeError):
+                pass
+        wm = pay_match.get("wm")
+        if isinstance(wm, dict):
+            wm_grade = wm.get("wm_pay_grade", "N/A")
+            wm_min = wm.get("wm_min")
+            wm_max = wm.get("wm_max")
+            if wm_min is not None and wm_max is not None:
+                _add_key_value(
+                    doc, "W&M Grade",
+                    f"{wm_grade} ({_format_salary(wm_min)} - {_format_salary(wm_max)})",
+                )
+            else:
+                _add_key_value(doc, "W&M Grade", wm_grade)
+        _add_body_text(
+            doc,
+            "Estimated from midpoint of family pay band range. "
+            "Use Full Analysis for role-specific pay data.",
+            italic=True, color=MED_GRAY,
+        )
 
     doc.add_paragraph()  # spacer
 

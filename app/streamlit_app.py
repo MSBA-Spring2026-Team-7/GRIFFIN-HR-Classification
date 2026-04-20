@@ -965,9 +965,24 @@ if st.session_state.classification_results:
                 # ── Download button (Fast Mode) ──
                 if _EXPORT_AVAILABLE:
                     try:
+                        # Mirror UI: attach resolved ML family match pay/wm so
+                        # the .docx shows the Estimated Pay block under the
+                        # ML Prediction card, not just probabilities.
+                        fast_mode_payload = {}
+                        if not ml_cg_match.empty:
+                            fast_mode_payload["fast_mode_pay_match"] = {
+                                "career_group_code": str(ml_cg_match.iloc[0]["career_group_code"]),
+                                "career_group_name": ml_cg_match.iloc[0]["career_group_name"],
+                                "pay_band_min": ml_band_min,
+                                "pay_band_max": ml_band_max,
+                                "pay_band_mid": ml_band_mid,
+                                "pay": ml_pay,
+                                "wm": ml_wm,
+                            }
+
                         report_bytes = generate_classification_report(
                             pd_text=job,
-                            classification_result={},
+                            classification_result=fast_mode_payload,
                             ml_result=ml_result,
                             mode=result_mode,
                             posted_salary=posted_salary,
