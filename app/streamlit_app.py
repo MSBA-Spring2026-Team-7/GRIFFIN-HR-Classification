@@ -1063,6 +1063,14 @@ if st.session_state.classification_results:
             ai_conf=r1_conf,
         )
 
+        # Attach locally-resolved pay/wm/band back to the source dict so the
+        # .docx export (which shallow-copies agent_result) picks them up.
+        if primary:
+            primary["band"] = r1_band
+            primary["pay_band"] = r1_band
+            primary["pay"] = r1_pay
+            primary["wm"] = r1_wm
+
         # AI detailed explanation from agent narrative
         if use_ai_explanation and explanation:
             explanation_html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', explanation)
@@ -1144,6 +1152,12 @@ if st.session_state.classification_results:
                 ai_conf=ar_conf,
             )
 
+            # Attach enriched fields so .docx export sees Salary Range + W&M Grade
+            alt_role["band"] = ar_band
+            alt_role["pay_band"] = ar_band
+            alt_role["pay"] = ar_pay
+            alt_role["wm"] = ar_wm
+
         # ══════════════════════════════════════════════════
         #  CARD 3: Alternative Career Group
         # ══════════════════════════════════════════════════
@@ -1180,6 +1194,12 @@ if st.session_state.classification_results:
                 ml_prob=ag_ml_prob,
                 ai_conf=ag_conf,
             )
+
+            # Attach enriched fields so .docx export sees Salary Range + W&M Grade
+            alt_group["band"] = ag_band
+            alt_group["pay_band"] = ag_band
+            alt_group["pay"] = ag_pay
+            alt_group["wm"] = ag_wm
 
         # ── Download button (Full Analysis) ──
         if _EXPORT_AVAILABLE:
